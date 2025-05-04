@@ -18,6 +18,7 @@ import Logo from "./Logo";
 
 const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <header className="bg-background border-b border-border sticky top-0 z-40">
@@ -147,8 +148,8 @@ const Header = () => {
               </Button>
             </Link>
             
-            {/* Mobile Menu */}
-            <Sheet>
+            {/* Mobile Menu Trigger */}
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
                   <Menu className="h-5 w-5" />
@@ -158,42 +159,74 @@ const Header = () => {
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between mb-6">
                     <Logo showText={false} size="sm" />
-                    <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <X className="h-5 w-5" />
-                      </Button>
-                    </SheetTrigger>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
                   </div>
                   
                   <nav className="flex flex-col gap-4">
-                    <Link to="/" className="text-lg font-medium py-2 border-b border-border">
+                    <Link 
+                      to="/" 
+                      className="text-lg font-medium py-2 border-b border-border"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       Domů
                     </Link>
-                    <Link to="/catalog" className="text-lg font-medium py-2 border-b border-border">
+                    <Link 
+                      to="/catalog" 
+                      className="text-lg font-medium py-2 border-b border-border"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       Katalog
                     </Link>
-                    <Link to="/custom-bouquet" className="text-lg font-medium py-2 border-b border-border">
+                    <Link 
+                      to="/custom-bouquet" 
+                      className="text-lg font-medium py-2 border-b border-border"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       Vlastní kytice
                     </Link>
-                    <Link to="/delivery" className="text-lg font-medium py-2 border-b border-border">
+                    <Link 
+                      to="/delivery" 
+                      className="text-lg font-medium py-2 border-b border-border"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       Doručení
                     </Link>
-                    <Link to="/blog" className="text-lg font-medium py-2 border-b border-border">
+                    <Link 
+                      to="/blog" 
+                      className="text-lg font-medium py-2 border-b border-border"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       Blog
                     </Link>
-                    <Link to="/contact" className="text-lg font-medium py-2 border-b border-border">
+                    <Link 
+                      to="/contact" 
+                      className="text-lg font-medium py-2 border-b border-border"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       Kontakt
                     </Link>
                   </nav>
                   
                   <div className="mt-auto flex flex-col gap-4">
-                    <Link to="/account">
+                    <Link 
+                      to="/account"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       <Button variant="outline" className="w-full">
                         <User className="mr-2 h-4 w-4" />
                         Můj účet
                       </Button>
                     </Link>
-                    <Link to="/cart">
+                    <Link 
+                      to="/cart"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
                       <Button className="w-full">
                         <ShoppingCart className="mr-2 h-4 w-4" />
                         Košík

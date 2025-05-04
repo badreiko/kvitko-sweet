@@ -8,23 +8,31 @@ import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 import ErrorPage from "./pages/ErrorPage";
 
-const queryClient = new QueryClient();
+// Создаем клиент для React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 минут
+      retry: 1,
+    },
+  },
+});
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-        <Toaster />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/catalog" element={<Catalog />} />
-            <Route path="/catalog/:category" element={<Catalog />} />
-            <Route path="/custom-bouquet" element={<CustomBouquet />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="*" element={<ErrorPage />} />
-          </Routes>
-        </BrowserRouter>
+      <Toaster position="top-right" />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/catalog" element={<Catalog />} />
+          <Route path="/catalog/:category" element={<Catalog />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/custom-bouquet" element={<CustomBouquet />} />
+          <Route path="*" element={<ErrorPage />} />
+        </Routes>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

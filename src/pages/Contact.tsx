@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Send, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -320,38 +320,3 @@ export default function Contact() {
     </Layout>
   );
 }
-
-// Missing icons
-const Check = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-
-const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-  </svg>
-);

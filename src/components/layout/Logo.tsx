@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import logoSvg from "@/assets/logo.svg";
 
 interface LogoProps {
   className?: string;
@@ -16,7 +17,7 @@ const Logo = ({ className = "", size = "md", showText = true }: LogoProps) => {
   return (
     <Link to="/" className={`flex items-center gap-2 ${className}`}>
       <img 
-        src="/logo.svg" 
+        src={logoSvg} // Используем импортированный SVG
         alt="Kvitko Sweet Logo" 
         className={`${sizeClasses[size]}`} 
       />
