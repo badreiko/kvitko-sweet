@@ -22,3 +22,25 @@ export { default as FlowerSymbolism } from './blog/flower-symbolism.png';
 export { default as ClientFemale } from './testimonials/happy-client-female.png';
 export { default as ClientMale } from './testimonials/business-client.png';
 export { default as ClientFamily } from './testimonials/family-celebration.png';
+
+// Цветы
+export { default as Rose } from './products/flowers/rose.png';
+export { default as Tulip } from './products/flowers/tulip.png';
+export { default as Peony } from './products/flowers/peony.png';
+export { default as Sunflower } from './products/flowers/sunflower.png';
+export { default as Lily } from './products/flowers/lily.png';
+export { default as Gerbera } from './products/flowers/gerbera.png';
+export { default as Chrysanthemum } from './products/flowers/chrysanthemum.png';
+export { default as Eustoma } from './products/flowers/eustoma.png';
+
+// Материалы упаковки
+export { default as NaturalPaper } from './products/wrapping/natural-paper.png';
+export { default as LuxuryPaper } from './products/wrapping/luxury-paper.png';
+export { default as JuteFabric } from './products/wrapping/jute-fabric.png';
+export { default as GiftBoxWrapping } from './products/wrapping/gift-box-wrapping.png';
+
+// Дополнительные товары
+export { default as ChocolateBox } from './products/additional/chocolate-box.png';
+export { default as TeddyBear } from './products/additional/teddy-bear.png';
+export { default as WineBottle } from './products/additional/wine-bottle.png';
+export { default as ScentedCandle } from './products/additional/scented-candle.png';

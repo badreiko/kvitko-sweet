@@ -12,82 +12,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/layout/Layout";
-
-// Sample data for products
-const products = [
-  {
-    id: "1",
-    name: "Jarní romance",
-    description: "Kytice plná jarních květin v pastelových barvách",
-    price: 890,
-    imageUrl: "https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "bouquets",
-    featured: true
-  },
-  {
-    id: "2",
-    name: "Růžový sen",
-    description: "Elegantní kytice růží v růžových odstínech",
-    price: 1290,
-    imageUrl: "https://images.unsplash.com/photo-1548386135-b47c7e488fcb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "bouquets",
-    featured: true
-  },
-  {
-    id: "3",
-    name: "Slunečnice",
-    description: "Zářivá kytice slunečnic pro rozjasnění dne",
-    price: 790,
-    imageUrl: "https://images.unsplash.com/photo-1470509037663-253afd7f0f51?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "bouquets",
-    featured: true
-  },
-  {
-    id: "4",
-    name: "Monstera Deliciosa",
-    description: "Populární pokojová rostlina s dělenými listy",
-    price: 690,
-    imageUrl: "https://images.unsplash.com/photo-1637967886160-fd78dc3ce2af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "plants",
-    featured: true
-  },
-  {
-    id: "5",
-    name: "Bílá elegance",
-    description: "Čistá bílá kytice pro svatební příležitosti",
-    price: 1490,
-    imageUrl: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "wedding",
-    featured: false
-  },
-  {
-    id: "6",
-    name: "Ficus Lyrata",
-    description: "Populární pokojová rostlina s velkými listy",
-    price: 890,
-    imageUrl: "https://images.unsplash.com/photo-1616682640551-e71f8c7c9c2e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "plants",
-    featured: false
-  },
-  {
-    id: "7",
-    name: "Čokoládový box",
-    description: "Luxusní čokoládový box jako doplněk ke kytici",
-    price: 390,
-    imageUrl: "https://images.unsplash.com/photo-1526081347589-7fa3cb873804?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "gifts",
-    featured: false
-  },
-  {
-    id: "8",
-    name: "Levandulový sen",
-    description: "Voňavá kytice levandule v rustikálním stylu",
-    price: 690,
-    imageUrl: "https://images.unsplash.com/photo-1600863344639-55b99d9d8a8e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "bouquets",
-    featured: false
-  }
-];
+import { ProductCard } from "@/components/ProductCard";
+import { products } from "@/data/products";
 
 // Sample data for categories
 const categories = [
@@ -512,42 +438,7 @@ export default function Catalog() {
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {sortedProducts.map((product) => (
-                    <Link 
-                      to={`/product/${product.id}`} 
-                      key={product.id}
-                      className="group"
-                    >
-                      <Card className="overflow-hidden border-border card-hover h-full">
-                        <div className="relative aspect-square overflow-hidden">
-                          <img 
-                            src={product.imageUrl} 
-                            alt={product.name} 
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                          {product.featured && (
-                            <div className="absolute top-3 right-3">
-                              <Badge className="bg-primary text-primary-foreground">
-                                Oblíbené
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                        <CardContent className="p-4">
-                          <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
-                            {product.name}
-                          </h3>
-                          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-                            {product.description}
-                          </p>
-                          <div className="flex justify-between items-center">
-                            <p className="font-semibold">{product.price} Kč</p>
-                            <Button size="sm" variant="outline">
-                              Do košíku
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                    <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
               ) : (

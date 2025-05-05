@@ -6,95 +6,22 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Layout from "@/components/layout/Layout";
+import { TestimonialCard } from "@/components/TestimonialCard";
+import { ProductCard } from "@/components/ProductCard";
+import { BlogPostCard } from "@/components/BlogPostCard";
+import { products } from "@/data/products";
+import { blogPosts } from "@/data/blogPosts";
+import { testimonials } from "@/data/testimonials";
 
-// Sample data for featured products
-const featuredProducts = [
-  {
-    id: "1",
-    name: "Jarní romance",
-    description: "Kytice plná jarních květin v pastelových barvách",
-    price: 890,
-    imageUrl: "https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "bouquets",
-    featured: true
-  },
-  {
-    id: "2",
-    name: "Růžový sen",
-    description: "Elegantní kytice růží v růžových odstínech",
-    price: 1290,
-    imageUrl: "https://images.unsplash.com/photo-1548386135-b47c7e488fcb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "bouquets",
-    featured: true
-  },
-  {
-    id: "3",
-    name: "Slunečnice",
-    description: "Zářivá kytice slunečnic pro rozjasnění dne",
-    price: 790,
-    imageUrl: "https://images.unsplash.com/photo-1470509037663-253afd7f0f51?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "bouquets",
-    featured: true
-  },
-  {
-    id: "4",
-    name: "Monstera Deliciosa",
-    description: "Populární pokojová rostlina s dělenými listy",
-    price: 690,
-    imageUrl: "https://images.unsplash.com/photo-1637967886160-fd78dc3ce2af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    category: "plants",
-    featured: true
-  }
-];
-
-// Sample data for blog posts
-const blogPosts = [
-  {
-    id: "1",
-    title: "Jak pečovat o řezané květiny",
-    excerpt: "Tipy a triky pro prodloužení životnosti vašich květin",
-    imageUrl: "https://images.unsplash.com/photo-1484900503188-a9a4b3c78d94?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    date: "15. 5. 2023"
-  },
-  {
-    id: "2",
-    title: "Květiny pro každou příležitost",
-    excerpt: "Průvodce výběrem správných květin pro různé události",
-    imageUrl: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    date: "2. 4. 2023"
-  },
-  {
-    id: "3",
-    title: "Pěstování pokojových rostlin",
-    excerpt: "Základní rady pro začátečníky i pokročilé pěstitele",
-    imageUrl: "https://images.unsplash.com/photo-1463936575829-25148e1db1b8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    date: "18. 3. 2023"
-  }
-];
-
-// Sample data for testimonials
-const testimonials = [
-  {
-    id: "1",
-    name: "Jana Nováková",
-    comment: "Nádherné květiny a skvělý servis! Kytice dorazila včas a vypadala přesně jako na fotografii. Určitě budu objednávat znovu.",
-    rating: 5
-  },
-  {
-    id: "2",
-    name: "Petr Svoboda",
-    comment: "Objednal jsem kytici pro manželku k výročí. Byla nadšená! Květiny byly čerstvé a krásně zabalené. Děkuji za profesionální přístup.",
-    rating: 5
-  },
-  {
-    id: "3",
-    name: "Martina Dvořáková",
-    comment: "Pravidelně nakupuji pokojové rostliny a vždy jsem spokojená. Rostliny jsou zdravé a personál ochotně poradí s péčí.",
-    rating: 4
-  }
-];
+// Импортируем изображение для hero-секции
+import { 
+  SpringBouquet
+} from '@/assets';
 
 export default function Home() {
+  // Отфильтровать только featured продукты
+  const featuredProducts = products.filter(product => product.featured);
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -129,7 +56,7 @@ export default function Home() {
             <div className="relative animate-fade-in animate-delay-200">
               <div className="absolute -inset-4 bg-primary/10 rounded-full blur-3xl"></div>
               <img 
-                src="https://images.unsplash.com/photo-1487530811176-3780de880c2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
+                src={SpringBouquet} 
                 alt="Květiny Kvitko Sweet" 
                 className="rounded-lg shadow-lg w-full h-auto object-cover aspect-[4/3]"
               />
@@ -213,40 +140,7 @@ export default function Home() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts.map((product, index) => (
-              <Link 
-                to={`/product/${product.id}`} 
-                key={product.id}
-                className="group"
-              >
-                <Card className="overflow-hidden border-border card-hover animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                  <div className="relative aspect-square overflow-hidden">
-                    <img 
-                      src={product.imageUrl} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute top-3 right-3">
-                      <Badge className="bg-primary text-primary-foreground">
-                        Oblíbené
-                      </Badge>
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
-                      {product.name}
-                    </h3>
-                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-                      {product.description}
-                    </p>
-                    <div className="flex justify-between items-center">
-                      <p className="font-semibold">{product.price} Kč</p>
-                      <Button size="sm" variant="outline">
-                        Do košíku
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </div>
@@ -307,7 +201,7 @@ export default function Home() {
             <div className="order-1 lg:order-2 relative animate-fade-in animate-delay-200">
               <div className="absolute -inset-4 bg-secondary/30 rounded-full blur-3xl"></div>
               <img 
-                src="https://images.unsplash.com/photo-1561729098-cbab0f7a9f7c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
+                src={products[1].imageUrl} 
                 alt="Vlastní kytice" 
                 className="rounded-lg shadow-lg w-full h-auto object-cover aspect-[4/3]"
               />
@@ -324,7 +218,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link to="/catalog/bouquets" className="group relative overflow-hidden rounded-lg aspect-square animate-fade-in">
               <img 
-                src="https://images.unsplash.com/photo-1526047932273-341f2a7631f9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
+                src={products[0].imageUrl} 
                 alt="Kytice" 
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
@@ -342,7 +236,7 @@ export default function Home() {
             
             <Link to="/catalog/plants" className="group relative overflow-hidden rounded-lg aspect-square animate-fade-in animate-delay-100">
               <img 
-                src="https://images.unsplash.com/photo-1545239705-1564e58b9e4a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
+                src={products[3].imageUrl} 
                 alt="Pokojové rostliny" 
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
@@ -360,7 +254,7 @@ export default function Home() {
             
             <Link to="/catalog/gifts" className="group relative overflow-hidden rounded-lg aspect-square animate-fade-in animate-delay-200">
               <img 
-                src="https://images.unsplash.com/photo-1513885535751-8b9238bd345a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
+                src={products[6].imageUrl} 
                 alt="Dárky" 
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
@@ -391,20 +285,7 @@ export default function Home() {
             <CarouselContent>
               {testimonials.map((testimonial) => (
                 <CarouselItem key={testimonial.id}>
-                  <Card className="border-none bg-background/50 backdrop-blur-sm">
-                    <CardContent className="p-8 text-center">
-                      <div className="flex justify-center mb-4">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`h-5 w-5 ${i < testimonial.rating ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground'}`} 
-                          />
-                        ))}
-                      </div>
-                      <p className="text-lg mb-6 italic">"{testimonial.comment}"</p>
-                      <p className="font-semibold">{testimonial.name}</p>
-                    </CardContent>
-                  </Card>
+                  <TestimonialCard testimonial={testimonial} />
                 </CarouselItem>
               ))}
             </CarouselContent>
@@ -423,7 +304,7 @@ export default function Home() {
             <div className="relative animate-fade-in">
               <div className="absolute -inset-4 bg-primary/10 rounded-full blur-3xl"></div>
               <img 
-                src="https://images.unsplash.com/photo-1577401239170-897942555fb3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
+                src={products[2].imageUrl} 
                 alt="Doručení květin" 
                 className="rounded-lg shadow-lg w-full h-auto object-cover aspect-[4/3]"
               />
@@ -514,35 +395,8 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {blogPosts.map((post, index) => (
-              <Link 
-                to={`/blog/${post.id}`} 
-                key={post.id}
-                className="group"
-              >
-                <Card className="overflow-hidden border-border card-hover h-full animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                  <div className="aspect-video overflow-hidden">
-                    <img 
-                      src={post.imageUrl} 
-                      alt={post.title} 
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  </div>
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground mb-2">{post.date}</p>
-                    <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm mb-4">
-                      {post.excerpt}
-                    </p>
-                    <div className="flex items-center text-primary font-medium">
-                      <span>Číst více</span>
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+            {blogPosts.map((post) => (
+              <BlogPostCard key={post.id} post={post} />
             ))}
           </div>
         </div>

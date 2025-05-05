@@ -10,32 +10,60 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import Layout from "@/components/layout/Layout";
 
-// Sample data for flowers
+// Импорт отдельных цветов
+import { 
+  Rose, 
+  Tulip, 
+  Peony, 
+  Sunflower, 
+  Lily, 
+  Gerbera, 
+  Chrysanthemum, 
+  Eustoma 
+} from '@/assets';
+
+// Импорт материалов упаковки
+import { 
+  NaturalPaper, 
+  LuxuryPaper, 
+  JuteFabric, 
+  GiftBoxWrapping 
+} from '@/assets';
+
+// Импорт дополнительных товаров
+import { 
+  ChocolateBox, 
+  TeddyBear, 
+  WineBottle, 
+  ScentedCandle 
+} from '@/assets';
+
+// Массив цветов с корректными изображениями
 const flowers = [
-  { id: "1", name: "Růže", price: 35, imageUrl: "https://images.unsplash.com/photo-1582794543139-8ac9cb0f7b11?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "2", name: "Tulipán", price: 25, imageUrl: "https://images.unsplash.com/photo-1589994160839-163cd867cfe8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "3", name: "Pivoňka", price: 45, imageUrl: "https://images.unsplash.com/photo-1590254553792-7e91903c5357?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "4", name: "Slunečnice", price: 30, imageUrl: "https://images.unsplash.com/photo-1470509037663-253afd7f0f51?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "5", name: "Lilie", price: 40, imageUrl: "https://images.unsplash.com/photo-1591639254203-3394a7cbb995?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "6", name: "Gerbera", price: 28, imageUrl: "https://images.unsplash.com/photo-1606041008023-472dfb5e530f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "7", name: "Chryzantéma", price: 32, imageUrl: "https://images.unsplash.com/photo-1603178455924-ef33372953bb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "8", name: "Eustoma", price: 38, imageUrl: "https://images.unsplash.com/photo-1567696153798-9111f9cd3d0d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" }
+  { id: "1", name: "Růže", price: 35, imageUrl: Rose },
+  { id: "2", name: "Tulipán", price: 25, imageUrl: Tulip },
+  { id: "3", name: "Pivoňka", price: 45, imageUrl: Peony },
+  { id: "4", name: "Slunečnice", price: 30, imageUrl: Sunflower },
+  { id: "5", name: "Lilie", price: 40, imageUrl: Lily },
+  { id: "6", name: "Gerbera", price: 28, imageUrl: Gerbera },
+  { id: "7", name: "Chryzantéma", price: 32, imageUrl: Chrysanthemum },
+  { id: "8", name: "Eustoma", price: 38, imageUrl: Eustoma }
 ];
 
-// Sample data for wrapping styles
+// Массив стилей упаковки с корректными изображениями
 const wrappingStyles = [
-  { id: "1", name: "Přírodní papír", price: 50, imageUrl: "https://images.unsplash.com/photo-1535685942105-20b7d3b6b8bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "2", name: "Luxusní papír", price: 80, imageUrl: "https://images.unsplash.com/photo-1513267048331-5611cad62e41?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "3", name: "Jutová látka", price: 70, imageUrl: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "4", name: "Dárková krabice", price: 120, imageUrl: "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" }
+  { id: "1", name: "Přírodní papír", price: 50, imageUrl: NaturalPaper },
+  { id: "2", name: "Luxusní papír", price: 80, imageUrl: LuxuryPaper },
+  { id: "3", name: "Jutová látka", price: 70, imageUrl: JuteFabric },
+  { id: "4", name: "Dárková krabice", price: 120, imageUrl: GiftBoxWrapping }
 ];
 
-// Sample data for additional items
+// Массив дополнительных товаров с корректными изображениями
 const additionalItems = [
-  { id: "1", name: "Čokoládový box", price: 150, imageUrl: "https://images.unsplash.com/photo-1526081347589-7fa3cb873804?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "2", name: "Plyšový medvídek", price: 200, imageUrl: "https://images.unsplash.com/photo-1602734846297-9299fc2d4703?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "3", name: "Láhev vína", price: 250, imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" },
-  { id: "4", name: "Vonná svíčka", price: 180, imageUrl: "https://images.unsplash.com/photo-1603006905003-be475563bc59?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" }
+  { id: "1", name: "Čokoládový box", price: 150, imageUrl: ChocolateBox },
+  { id: "2", name: "Plyšový medvídek", price: 200, imageUrl: TeddyBear },
+  { id: "3", name: "Láhev vína", price: 250, imageUrl: WineBottle },
+  { id: "4", name: "Vonná svíčka", price: 180, imageUrl: ScentedCandle }
 ];
 
 type SelectedFlower = {
