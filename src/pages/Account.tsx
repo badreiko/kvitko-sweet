@@ -1,24 +1,76 @@
 // src/pages/Account.tsx
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/context/AuthContext";
-import { getUserOrders, getUserCustomBouquets } from "@/firebase/services";
-import { Order, CustomBouquet } from "@/app/repo/apps/firestore/models/product";
 import { toast } from "sonner";
-import { User, Settings, LogOut, Package, ShoppingBag, Heart } from "lucide-react";
+import Layout from "@/components/layout/Layout";
+
+// Определение наших моделей здесь, вместо импорта из отсутствующего модуля
+interface Order {
+  id: string;
+  userId: string;
+  items: Array<{
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
+  totalAmount: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  deliveryAddress: {
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+  deliveryDate?: Date;
+  paymentMethod: string;
+  paymentStatus: 'pending' | 'paid' | 'failed';
+  createdAt: Date;
+}
+
+interface CustomBouquet {
+  id: string;
+  userId: string;
+  flowers: Array<{
+    flowerId: string;
+    quantity: number;
+  }>;
+  additionalItems?: Array<{
+    itemId: string;
+    quantity: number;
+  }>;
+  wrappingStyle: string;
+  message?: string;
+  price: number;
+  status: 'draft' | 'ordered' | 'completed';
+  createdAt: Date;
+}
+
+// Заглушки для функций, которые должны быть реализованы в firebase/services
+const getUserOrders = async (userId: string): Promise<Order[]> => {
+  // Здесь должна быть реальная имплементация
+  return [];
+};
+
+const getUserCustomBouquets = async (userId: string): Promise<CustomBouquet[]> => {
+  // Здесь должна быть реальная имплементация
+  return [];
+};
 
 export default function Account() {
-  const { user, updateProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customBouquets, setCustomBouquets] = useState<CustomBouquet[]>([]);
+  const { user, updateProfile, logout } = useAuth();
+  
   const [profileData, setProfileData] = useState({
     displayName: user?.displayName || "",
     email: user?.email || "",
@@ -45,7 +97,9 @@ export default function Account() {
           setCustomBouquets(userBouquets);
         } catch (error) {
           console.error('Error loading user data:', error);
-          toast.error('Не удалось загрузить данные. Пожалуйста, попробуйте позже.');
+          toast.error('Nepodařilo se načíst data. Zkuste to prosím později.');
+        } finally {
+          setLoading(false);
         }
       };
       
@@ -88,10 +142,10 @@ export default function Account() {
         address: profileData.address
       });
       
-      toast.success('Профиль успешно обновлен');
+      toast.success('Profil byl úspěšně aktualizován');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Не удалось обновить профиль. Пожалуйста, попробуйте позже.');
+      toast.error('Nepodařilo se aktualizovat profil. Zkuste to prosím později.');
     } finally {
       setLoading(false);
     }
@@ -101,17 +155,17 @@ export default function Account() {
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success('Вы успешно вышли из аккаунта');
+      toast.success('Úspěšně jste se odhlásili');
     } catch (error) {
       console.error('Error logging out:', error);
-      toast.error('Ошибка при выходе из аккаунта');
+      toast.error('Chyba při odhlášení');
     }
   };
 
   return (
     <Layout>
       <div className="container-custom py-12">
-        <h1 className="text-3xl font-bold mb-8">Мой аккаунт</h1>
+        <h1 className="text-3xl font-bold mb-8">Můj účet</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Боковое меню */}
@@ -120,9 +174,22 @@ export default function Account() {
               <CardContent className="p-6">
                 <div className="flex flex-col items-center mb-6">
                   <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <User className="h-8 w-8 text-primary" />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="h-8 w-8 text-primary" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
+                      />
+                    </svg>
                   </div>
-                  <h2 className="font-semibold text-lg">{user?.displayName || 'Пользователь'}</h2>
+                  <h2 className="font-semibold text-lg">{user?.displayName || 'Uživatel'}</h2>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
                 </div>
                 
@@ -134,32 +201,90 @@ export default function Account() {
                     className="w-full justify-start" 
                     onClick={() => setActiveTab("profile")}
                   >
-                    <User className="mr-2 h-4 w-4" />
-                    Личные данные
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="mr-2 h-4 w-4" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
+                      />
+                    </svg>
+                    Osobní údaje
                   </Button>
                   <Button 
                     variant={activeTab === "orders" ? "default" : "ghost"} 
                     className="w-full justify-start" 
                     onClick={() => setActiveTab("orders")}
                   >
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    Мои заказы
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="mr-2 h-4 w-4" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" 
+                      />
+                    </svg>
+                    Moje objednávky
                   </Button>
                   <Button 
                     variant={activeTab === "bouquets" ? "default" : "ghost"} 
                     className="w-full justify-start" 
                     onClick={() => setActiveTab("bouquets")}
                   >
-                    <Heart className="mr-2 h-4 w-4" />
-                    Мои букеты
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="mr-2 h-4 w-4" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                      />
+                    </svg>
+                    Moje kytice
                   </Button>
                   <Button 
                     variant={activeTab === "settings" ? "default" : "ghost"} 
                     className="w-full justify-start" 
                     onClick={() => setActiveTab("settings")}
                   >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Настройки
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="mr-2 h-4 w-4" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" 
+                      />
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+                      />
+                    </svg>
+                    Nastavení
                   </Button>
                   <Separator className="my-2" />
                   <Button 
@@ -167,8 +292,21 @@ export default function Account() {
                     className="w-full justify-start text-destructive hover:text-destructive" 
                     onClick={handleLogout}
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Выйти
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="mr-2 h-4 w-4" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+                      />
+                    </svg>
+                    Odhlásit se
                   </Button>
                 </nav>
               </CardContent>
@@ -181,12 +319,12 @@ export default function Account() {
             {activeTab === "profile" && (
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-6">Личные данные</h2>
+                  <h2 className="text-xl font-semibold mb-6">Osobní údaje</h2>
                   
                   <form onSubmit={handleProfileUpdate}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                       <div className="space-y-2">
-                        <Label htmlFor="displayName">Имя</Label>
+                        <Label htmlFor="displayName">Jméno</Label>
                         <Input 
                           id="displayName" 
                           name="displayName" 
@@ -203,10 +341,10 @@ export default function Account() {
                           onChange={handleChange} 
                           disabled 
                         />
-                        <p className="text-xs text-muted-foreground">Электронная почта не может быть изменена</p>
+                        <p className="text-xs text-muted-foreground">E-mail nelze změnit</p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phoneNumber">Телефон</Label>
+                        <Label htmlFor="phoneNumber">Telefon</Label>
                         <Input 
                           id="phoneNumber" 
                           name="phoneNumber" 
@@ -216,10 +354,10 @@ export default function Account() {
                       </div>
                     </div>
                     
-                    <h3 className="text-lg font-medium mb-4">Адрес доставки</h3>
+                    <h3 className="text-lg font-medium mb-4">Doručovací adresa</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                       <div className="space-y-2">
-                        <Label htmlFor="address.street">Улица и номер дома</Label>
+                        <Label htmlFor="address.street">Ulice a číslo</Label>
                         <Input 
                           id="address.street" 
                           name="address.street" 
@@ -228,7 +366,7 @@ export default function Account() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="address.city">Город</Label>
+                        <Label htmlFor="address.city">Město</Label>
                         <Input 
                           id="address.city" 
                           name="address.city" 
@@ -237,7 +375,7 @@ export default function Account() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="address.postalCode">Почтовый индекс</Label>
+                        <Label htmlFor="address.postalCode">PSČ</Label>
                         <Input 
                           id="address.postalCode" 
                           name="address.postalCode" 
@@ -246,7 +384,7 @@ export default function Account() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="address.country">Страна</Label>
+                        <Label htmlFor="address.country">Země</Label>
                         <Input 
                           id="address.country" 
                           name="address.country" 
@@ -257,7 +395,7 @@ export default function Account() {
                     </div>
                     
                     <Button type="submit" disabled={loading}>
-                      {loading ? 'Сохранение...' : 'Сохранить изменения'}
+                      {loading ? 'Ukládání...' : 'Uložit změny'}
                     </Button>
                   </form>
                 </CardContent>
@@ -268,7 +406,7 @@ export default function Account() {
             {activeTab === "orders" && (
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-6">Мои заказы</h2>
+                  <h2 className="text-xl font-semibold mb-6">Moje objednávky</h2>
                   
                   {orders.length > 0 ? (
                     <div className="space-y-6">
@@ -277,9 +415,9 @@ export default function Account() {
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start mb-4">
                               <div>
-                                <p className="font-medium">Заказ #{order.id.slice(0, 6)}</p>
+                                <p className="font-medium">Objednávka #{order.id.slice(0, 6)}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {new Date(order.createdAt).toLocaleDateString('ru-RU')}
+                                  {new Date(order.createdAt).toLocaleDateString('cs-CZ')}
                                 </p>
                               </div>
                               <div>
@@ -289,11 +427,11 @@ export default function Account() {
                                   order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' : 
                                   'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {order.status === 'delivered' ? 'Доставлен' : 
-                                   order.status === 'shipped' ? 'Отправлен' : 
-                                   order.status === 'processing' ? 'В обработке' : 
-                                   order.status === 'pending' ? 'Ожидает оплаты' : 
-                                   'Отменен'}
+                                  {order.status === 'delivered' ? 'Doručeno' : 
+                                   order.status === 'shipped' ? 'Odesláno' : 
+                                   order.status === 'processing' ? 'Zpracovává se' : 
+                                   order.status === 'pending' ? 'Čeká na platbu' : 
+                                   'Zrušeno'}
                                 </span>
                               </div>
                             </div>
@@ -310,7 +448,7 @@ export default function Account() {
                             <Separator className="my-4" />
                             
                             <div className="flex justify-between font-semibold">
-                              <span>Итого:</span>
+                              <span>Celkem:</span>
                               <span>{order.totalAmount} Kč</span>
                             </div>
                           </CardContent>
@@ -319,13 +457,26 @@ export default function Account() {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">У вас пока нет заказов</h3>
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="h-12 w-12 mx-auto text-muted-foreground mb-4" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" 
+                        />
+                      </svg>
+                      <h3 className="text-lg font-semibold mb-2">Zatím nemáte žádné objednávky</h3>
                       <p className="text-muted-foreground mb-6">
-                        Когда вы разместите свой первый заказ, он появится здесь.
+                        Až zadáte první objednávku, zobrazí se zde.
                       </p>
                       <Button asChild>
-                        <a href="/catalog">Перейти в каталог</a>
+                        <a href="/catalog">Přejít do katalogu</a>
                       </Button>
                     </div>
                   )}
@@ -337,7 +488,7 @@ export default function Account() {
             {activeTab === "bouquets" && (
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-6">Мои букеты</h2>
+                  <h2 className="text-xl font-semibold mb-6">Moje kytice</h2>
                   
                   {customBouquets.length > 0 ? (
                     <div className="space-y-6">
@@ -346,9 +497,9 @@ export default function Account() {
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start mb-4">
                               <div>
-                                <p className="font-medium">Букет #{bouquet.id.slice(0, 6)}</p>
+                                <p className="font-medium">Kytice #{bouquet.id.slice(0, 6)}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {new Date(bouquet.createdAt).toLocaleDateString('ru-RU')}
+                                  {new Date(bouquet.createdAt).toLocaleDateString('cs-CZ')}
                                 </p>
                               </div>
                               <div>
@@ -357,24 +508,24 @@ export default function Account() {
                                   bouquet.status === 'ordered' ? 'bg-blue-100 text-blue-800' : 
                                   'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {bouquet.status === 'completed' ? 'Готов' : 
-                                   bouquet.status === 'ordered' ? 'Заказан' : 
-                                   'Черновик'}
+                                  {bouquet.status === 'completed' ? 'Dokončeno' : 
+                                   bouquet.status === 'ordered' ? 'Objednáno' : 
+                                   'Koncept'}
                                 </span>
                               </div>
                             </div>
                             
                             <div className="space-y-2 mb-4">
-                              <p className="font-medium">Цветы:</p>
+                              <p className="font-medium">Květiny:</p>
                               {bouquet.flowers.map((flower, index) => (
                                 <div key={index} className="flex justify-between">
-                                  <span>Цветок ID {flower.flowerId} × {flower.quantity}</span>
+                                  <span>Květina ID {flower.flowerId} × {flower.quantity}</span>
                                 </div>
                               ))}
                               
                               {bouquet.message && (
                                 <div className="mt-4">
-                                  <p className="font-medium">Сообщение:</p>
+                                  <p className="font-medium">Zpráva:</p>
                                   <p className="italic">"{bouquet.message}"</p>
                                 </div>
                               )}
@@ -383,13 +534,13 @@ export default function Account() {
                             <Separator className="my-4" />
                             
                             <div className="flex justify-between font-semibold">
-                              <span>Стоимость:</span>
+                              <span>Cena:</span>
                               <span>{bouquet.price} Kč</span>
                             </div>
                             
                             {bouquet.status === 'draft' && (
                               <div className="mt-4">
-                                <Button className="w-full">Завершить оформление</Button>
+                                <Button className="w-full">Dokončit objednávku</Button>
                               </div>
                             )}
                           </CardContent>
@@ -398,13 +549,26 @@ export default function Account() {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">У вас пока нет созданных букетов</h3>
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="h-12 w-12 mx-auto text-muted-foreground mb-4" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                        />
+                      </svg>
+                      <h3 className="text-lg font-semibold mb-2">Zatím nemáte žádné vlastní kytice</h3>
                       <p className="text-muted-foreground mb-6">
-                        Создайте свой первый уникальный букет.
+                        Vytvořte si svou první unikátní kytici.
                       </p>
                       <Button asChild>
-                        <a href="/custom-bouquet">Создать букет</a>
+                        <a href="/custom-bouquet">Vytvořit kytici</a>
                       </Button>
                     </div>
                   )}
@@ -416,25 +580,25 @@ export default function Account() {
             {activeTab === "settings" && (
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-6">Настройки</h2>
+                  <h2 className="text-xl font-semibold mb-6">Nastavení</h2>
                   
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-medium mb-2">Смена пароля</h3>
+                      <h3 className="text-lg font-medium mb-2">Změna hesla</h3>
                       <p className="text-muted-foreground mb-4">
-                        Для смены пароля мы отправим вам письмо на электронную почту.
+                        Pro změnu hesla vám zašleme e-mail na vaši e-mailovou adresu.
                       </p>
-                      <Button>Сбросить пароль</Button>
+                      <Button>Resetovat heslo</Button>
                     </div>
                     
                     <Separator />
                     
                     <div>
-                      <h3 className="text-lg font-medium mb-2">Удаление аккаунта</h3>
+                      <h3 className="text-lg font-medium mb-2">Smazání účtu</h3>
                       <p className="text-muted-foreground mb-4">
-                        Внимание! Это действие безвозвратно удалит ваш аккаунт и все связанные данные.
+                        Upozornění! Tato akce nenávratně smaže váš účet a všechna související data.
                       </p>
-                      <Button variant="destructive">Удалить аккаунт</Button>
+                      <Button variant="destructive">Smazat účet</Button>
                     </div>
                   </div>
                 </CardContent>

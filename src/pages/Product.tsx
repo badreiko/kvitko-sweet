@@ -11,7 +11,7 @@ export default function Product() {
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   
-  // Находим продукт по ID
+  // Najdeme produkt podle ID
   const product = products.find(p => p.id === id);
   
   if (!product) {

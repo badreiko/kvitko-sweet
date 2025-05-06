@@ -17,7 +17,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Получаем URL для перенаправления после входа
+  // Získání URL pro přesměrování po přihlášení
   const from = location.state?.from?.pathname || "/";
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,18 +26,18 @@ export default function Login() {
     
     try {
       await login(email, password);
-      toast.success("Успешный вход в систему");
+      toast.success("Přihlášení úspěšné");
       navigate(from, { replace: true });
     } catch (error: any) {
-      // Обработка разных типов ошибок
-      let errorMessage = "Не удалось войти в систему";
+      // Zpracování různých typů chyb
+      let errorMessage = "Přihlášení se nezdařilo";
       
       if (error.code === "auth/invalid-email") {
-        errorMessage = "Неверный формат электронной почты";
+        errorMessage = "Neplatný formát e-mailu";
       } else if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-        errorMessage = "Неверная почта или пароль";
+        errorMessage = "Nesprávný e-mail nebo heslo";
       } else if (error.code === "auth/too-many-requests") {
-        errorMessage = "Слишком много попыток входа. Попробуйте позже";
+        errorMessage = "Příliš mnoho pokusů o přihlášení. Zkuste to prosím později";
       }
       
       toast.error(errorMessage);
@@ -53,28 +53,28 @@ export default function Login() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center mb-6">
-                <h1 className="text-2xl font-bold">Вход в аккаунт</h1>
-                <p className="text-muted-foreground mt-2">Войдите, чтобы получить доступ к вашему аккаунту</p>
+                <h1 className="text-2xl font-bold">Přihlášení</h1>
+                <p className="text-muted-foreground mt-2">Přihlaste se pro přístup ke svému účtu</p>
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Электронная почта</Label>
+                  <Label htmlFor="email">E-mail</Label>
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Введите вашу почту"
+                    placeholder="Zadejte svůj e-mail"
                     required
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="password">Пароль</Label>
+                    <Label htmlFor="password">Heslo</Label>
                     <Link to="/reset-password" className="text-sm text-primary hover:underline">
-                      Забыли пароль?
+                      Zapomenuté heslo?
                     </Link>
                   </div>
                   <Input
@@ -82,7 +82,7 @@ export default function Login() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Введите ваш пароль"
+                    placeholder="Zadejte své heslo"
                     required
                   />
                 </div>
@@ -92,15 +92,15 @@ export default function Login() {
                   className="w-full"
                   disabled={loading}
                 >
-                  {loading ? "Вход..." : "Войти"}
+                  {loading ? "Přihlašuji..." : "Přihlásit se"}
                 </Button>
               </form>
               
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Еще нет аккаунта?{" "}
+                  Nemáte ještě účet?{" "}
                   <Link to="/register" className="text-primary hover:underline">
-                    Зарегистрироваться
+                    Zaregistrujte se
                   </Link>
                 </p>
               </div>

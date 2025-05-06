@@ -23,15 +23,15 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Проверка паролей
+    // Kontrola hesel
     if (password !== confirmPassword) {
-      toast.error("Пароли не совпадают");
+      toast.error("Hesla se neshodují");
       return;
     }
     
-    // Проверка согласия с условиями
+    // Kontrola souhlasu s podmínkami
     if (!acceptTerms) {
-      toast.error("Необходимо принять условия использования");
+      toast.error("Je nutné souhlasit s obchodními podmínkami");
       return;
     }
     
@@ -39,18 +39,18 @@ export default function Register() {
     
     try {
       await register(email, password, displayName);
-      toast.success("Регистрация прошла успешно");
+      toast.success("Registrace proběhla úspěšně");
       navigate("/");
     } catch (error: any) {
-      // Обработка разных типов ошибок
-      let errorMessage = "Не удалось зарегистрироваться";
+      // Zpracování různých typů chyb
+      let errorMessage = "Registrace se nezdařila";
       
       if (error.code === "auth/email-already-in-use") {
-        errorMessage = "Этот email уже используется";
+        errorMessage = "Tento e-mail je již používán";
       } else if (error.code === "auth/invalid-email") {
-        errorMessage = "Неверный формат электронной почты";
+        errorMessage = "Neplatný formát e-mailu";
       } else if (error.code === "auth/weak-password") {
-        errorMessage = "Слишком слабый пароль";
+        errorMessage = "Příliš slabé heslo";
       }
       
       toast.error(errorMessage);
@@ -66,58 +66,58 @@ export default function Register() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center mb-6">
-                <h1 className="text-2xl font-bold">Регистрация</h1>
-                <p className="text-muted-foreground mt-2">Создайте аккаунт для доступа к расширенным возможностям</p>
+                <h1 className="text-2xl font-bold">Registrace</h1>
+                <p className="text-muted-foreground mt-2">Vytvořte si účet pro přístup k rozšířeným funkcím</p>
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="displayName">Имя</Label>
+                  <Label htmlFor="displayName">Jméno</Label>
                   <Input
                     id="displayName"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Введите ваше имя"
+                    placeholder="Zadejte své jméno"
                     required
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Электронная почта</Label>
+                  <Label htmlFor="email">E-mail</Label>
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Введите вашу почту"
+                    placeholder="Zadejte svůj e-mail"
                     required
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Пароль</Label>
+                  <Label htmlFor="password">Heslo</Label>
                   <Input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Введите пароль"
+                    placeholder="Zadejte heslo"
                     required
                     minLength={6}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Минимум 6 символов
+                    Minimálně 6 znaků
                   </p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Подтвердите пароль</Label>
+                  <Label htmlFor="confirmPassword">Potvrďte heslo</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Повторите пароль"
+                    placeholder="Zopakujte heslo"
                     required
                     minLength={6}
                   />
@@ -130,13 +130,13 @@ export default function Register() {
                     onCheckedChange={(checked) => setAcceptTerms(checked as boolean)} 
                   />
                   <Label htmlFor="terms" className="text-sm font-normal">
-                    Я принимаю{" "}
+                    Souhlasím s{" "}
                     <Link to="/terms" className="text-primary hover:underline">
-                      условия использования
+                      obchodními podmínkami
                     </Link>{" "}
-                    и{" "}
+                    a{" "}
                     <Link to="/privacy" className="text-primary hover:underline">
-                      политику конфиденциальности
+                      zásadami ochrany osobních údajů
                     </Link>
                   </Label>
                 </div>
@@ -146,15 +146,15 @@ export default function Register() {
                   className="w-full"
                   disabled={loading || !acceptTerms}
                 >
-                  {loading ? "Регистрация..." : "Зарегистрироваться"}
+                  {loading ? "Registruji..." : "Zaregistrovat se"}
                 </Button>
               </form>
               
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Уже есть аккаунт?{" "}
+                  Už máte účet?{" "}
                   <Link to="/login" className="text-primary hover:underline">
-                    Войти
+                    Přihlásit se
                   </Link>
                 </p>
               </div>

@@ -31,7 +31,20 @@ import {
   addProduct,
   updateProduct
 } from "@/firebase/services";
-import { Product } from "@/app/repo/apps/firestore/models/product";
+
+// Определение интерфейса Product для решения проблемы с импортом
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  category: string;
+  inStock: boolean;
+  featured?: boolean;
+  tags?: string[];
+  createdAt: Date;
+}
 
 export default function ProductForm() {
   const navigate = useNavigate();
@@ -86,13 +99,13 @@ export default function ProductForm() {
             setTags(product.tags || []);
             setImagePreview(product.imageUrl);
           } else {
-            toast.error("Товар не найден");
+            toast.error("Produkt nebyl nalezen");
             navigate("/admin/products");
           }
         }
       } catch (error) {
         console.error("Error loading data:", error);
-        toast.error("Ошибка при загрузке данных");
+        toast.error("Chyba při načítání dat");
       } finally {
         setLoading(false);
       }
@@ -104,7 +117,7 @@ export default function ProductForm() {
   // Обработка изменения полей формы
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setProductData(prev => ({
+    setProductData((prev: Partial<Product>) => ({
       ...prev,
       [name]: name === "price" ? Number(value) : value
     }));
@@ -112,7 +125,7 @@ export default function ProductForm() {
 
   // Обработка переключателей
   const handleSwitchChange = (name: string, checked: boolean) => {
-    setProductData(prev => ({
+    setProductData((prev: Partial<Product>) => ({
       ...prev,
       [name]: checked
     }));
@@ -137,7 +150,7 @@ export default function ProductForm() {
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    setProductData(prev => ({
+    setProductData((prev: Partial<Product>) => ({
       ...prev,
       imageUrl: ""
     }));
@@ -151,7 +164,7 @@ export default function ProductForm() {
       if (!tags.includes(newTag.trim())) {
         const updatedTags = [...tags, newTag.trim()];
         setTags(updatedTags);
-        setProductData(prev => ({
+        setProductData((prev: Partial<Product>) => ({
           ...prev,
           tags: updatedTags
         }));
@@ -165,7 +178,7 @@ export default function ProductForm() {
   const handleRemoveTag = (tagToRemove: string) => {
     const updatedTags = tags.filter(tag => tag !== tagToRemove);
     setTags(updatedTags);
-    setProductData(prev => ({
+    setProductData((prev: Partial<Product>) => ({
       ...prev,
       tags: updatedTags
     }));
@@ -179,7 +192,7 @@ export default function ProductForm() {
     try {
       // Проверка обязательных полей
       if (!productData.name || !productData.category || productData.price === undefined) {
-        toast.error("Пожалуйста, заполните все обязательные поля");
+        toast.error("Prosím vyplňte všechna povinná pole");
         setSaving(false);
         return;
       }
@@ -187,17 +200,17 @@ export default function ProductForm() {
       // Добавление или обновление продукта
       if (isEditing && id) {
         await updateProduct(id, productData, imageFile || undefined);
-        toast.success("Товар успешно обновлен");
+        toast.success("Produkt byl úspěšně aktualizován");
       } else {
         const newProductId = await addProduct(productData as Omit<Product, 'id'>, imageFile || undefined);
-        toast.success("Товар успешно добавлен");
+        toast.success("Produkt byl úspěšně přidán");
       }
       
       // Перенаправляем на страницу списка товаров
       navigate("/admin/products");
     } catch (error) {
       console.error("Error saving product:", error);
-      toast.error("Ошибка при сохранении товара");
+      toast.error("Chyba při ukládání produktu");
     } finally {
       setSaving(false);
     }
@@ -207,13 +220,13 @@ export default function ProductForm() {
   const getCategoryName = (categoryId: string) => {
     switch (categoryId) {
       case "bouquets":
-        return "Букеты";
+        return "Kytice";
       case "plants":
-        return "Растения";
+        return "Rostliny";
       case "wedding":
-        return "Свадебные";
+        return "Svatební";
       case "gifts":
-        return "Подарки";
+        return "Dárky";
       default:
         return categoryId;
     }
@@ -241,13 +254,13 @@ export default function ProductForm() {
               </Link>
             </Button>
             <h1 className="text-3xl font-bold">
-              {isEditing ? "Редактирование товара" : "Добавление товара"}
+              {isEditing ? "Úprava produktu" : "Přidání produktu"}
             </h1>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" asChild>
               <Link to="/admin/products">
-                Отмена
+                Zrušit
               </Link>
             </Button>
             <Button 
@@ -255,7 +268,7 @@ export default function ProductForm() {
               form="product-form" 
               disabled={saving}
             >
-              {saving ? "Сохранение..." : "Сохранить"}
+              {saving ? "Ukládání..." : "Uložit"}
             </Button>
           </div>
         </div>
@@ -266,12 +279,12 @@ export default function ProductForm() {
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Основная информация</CardTitle>
-                  <CardDescription>Заполните основные данные о товаре</CardDescription>
+                  <CardTitle>Základní informace</CardTitle>
+                  <CardDescription>Vyplňte základní údaje o produktu</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Название*</Label>
+                    <Label htmlFor="name">Název*</Label>
                     <Input
                       id="name"
                       name="name"
@@ -282,7 +295,7 @@ export default function ProductForm() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="description">Описание</Label>
+                    <Label htmlFor="description">Popis</Label>
                     <Textarea
                       id="description"
                       name="description"
@@ -294,7 +307,7 @@ export default function ProductForm() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Цена (Kč)*</Label>
+                      <Label htmlFor="price">Cena (Kč)*</Label>
                       <Input
                         id="price"
                         name="price"
@@ -308,13 +321,13 @@ export default function ProductForm() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="category">Категория*</Label>
+                      <Label htmlFor="category">Kategorie*</Label>
                       <Select
                         value={productData.category}
-                        onValueChange={(value) => setProductData(prev => ({ ...prev, category: value }))}
+                        onValueChange={(value) => setProductData((prev: Partial<Product>) => ({ ...prev, category: value }))}
                       >
                         <SelectTrigger id="category">
-                          <SelectValue placeholder="Выберите категорию" />
+                          <SelectValue placeholder="Vyberte kategorii" />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map(category => (
@@ -328,7 +341,7 @@ export default function ProductForm() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="tags">Теги</Label>
+                    <Label htmlFor="tags">Tagy</Label>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {tags.map(tag => (
                         <Badge key={tag} variant="secondary" className="flex items-center gap-1">
@@ -346,13 +359,13 @@ export default function ProductForm() {
                     </div>
                     <Input
                       id="tags"
-                      placeholder="Введите тег и нажмите Enter"
+                      placeholder="Zadejte tag a stiskněte Enter"
                       value={newTag}
                       onChange={(e) => setNewTag(e.target.value)}
                       onKeyDown={handleAddTag}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Введите тег и нажмите Enter для добавления
+                      Zadejte tag a stiskněte Enter pro přidání
                     </p>
                   </div>
                   
@@ -363,7 +376,7 @@ export default function ProductForm() {
                         checked={productData.inStock}
                         onCheckedChange={(checked) => handleSwitchChange('inStock', checked)}
                       />
-                      <Label htmlFor="inStock">В наличии</Label>
+                      <Label htmlFor="inStock">Skladem</Label>
                     </div>
                     
                     <div className="flex items-center space-x-2">
@@ -372,7 +385,7 @@ export default function ProductForm() {
                         checked={productData.featured}
                         onCheckedChange={(checked) => handleSwitchChange('featured', checked)}
                       />
-                      <Label htmlFor="featured">Рекомендуемый товар</Label>
+                      <Label htmlFor="featured">Doporučený produkt</Label>
                     </div>
                   </div>
                 </CardContent>
@@ -383,15 +396,15 @@ export default function ProductForm() {
             <div>
               <Card>
                 <CardHeader>
-                  <CardTitle>Изображение товара</CardTitle>
-                  <CardDescription>Загрузите изображение товара</CardDescription>
+                  <CardTitle>Obrázek produktu</CardTitle>
+                  <CardDescription>Nahrajte obrázek produktu</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {imagePreview ? (
                     <div className="relative aspect-square overflow-hidden rounded-md">
                       <img
                         src={imagePreview}
-                        alt="Product preview"
+                        alt="Náhled produktu"
                         className="w-full h-full object-cover"
                       />
                       <Button
@@ -409,10 +422,10 @@ export default function ProductForm() {
                       <Upload className="h-8 w-8 text-muted-foreground mb-4" />
                       <div className="mb-4">
                         <p className="text-sm font-medium">
-                          Перетащите изображение сюда или нажмите для выбора
+                          Přetáhněte obrázek sem nebo klikněte pro výběr
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          PNG, JPG или WEBP, максимум 5MB
+                          PNG, JPG nebo WEBP, maximálně 5MB
                         </p>
                       </div>
                       <Input
@@ -427,7 +440,7 @@ export default function ProductForm() {
                         onClick={() => document.getElementById('image')?.click()}
                         type="button"
                       >
-                        Выбрать изображение
+                        Vybrat obrázek
                       </Button>
                     </div>
                   )}
@@ -436,7 +449,7 @@ export default function ProductForm() {
                     <div className="p-3 bg-amber-50 text-amber-800 rounded-md flex items-start">
                       <AlertCircle className="h-5 w-5 mr-2 shrink-0 mt-0.5" />
                       <p className="text-sm">
-                        Рекомендуется добавить изображение товара. Товары с изображениями привлекают больше внимания.
+                        Doporučuje se přidat obrázek produktu. Produkty s obrázky přitahují více pozornosti.
                       </p>
                     </div>
                   )}
@@ -446,17 +459,17 @@ export default function ProductForm() {
               {/* Дополнительные опции */}
               <Card className="mt-6">
                 <CardHeader>
-                  <CardTitle>Просмотр товара</CardTitle>
+                  <CardTitle>Zobrazení produktu</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Button variant="outline" className="w-full" asChild>
                     {isEditing ? (
                       <Link to={`/product/${id}`} target="_blank">
-                        Открыть страницу товара
+                        Otevřít stránku produktu
                       </Link>
                     ) : (
                       <span className="opacity-50 cursor-not-allowed">
-                        Сначала сохраните товар
+                        Nejprve uložte produkt
                       </span>
                     )}
                   </Button>
