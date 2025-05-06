@@ -46,6 +46,14 @@ const GUEST_CART_KEY = 'guest_cart';
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+export function useCart() {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error("useCart must be used within a CartProvider");
+  }
+  return context;
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -233,11 +241,3 @@ export function CartProvider({ children }: { children: ReactNode }) {
     </CartContext.Provider>
   );
 }
-
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};

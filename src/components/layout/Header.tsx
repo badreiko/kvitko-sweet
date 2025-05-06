@@ -30,7 +30,7 @@ const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { cart, getItemsCount } = useCart();
+  const { getItemsCount } = useCart();
   
   // Количество товаров в корзине
   const itemsCount = getItemsCount();
@@ -56,11 +56,9 @@ const Header = () => {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link to="/">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Domů
-                    </NavigationMenuLink>
-                  </Link>
+                  <NavigationMenuLink href="/" className={navigationMenuTriggerStyle()}>
+                    Domů
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
@@ -68,43 +66,35 @@ const Header = () => {
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                       <li>
-                        <NavigationMenuLink asChild>
-                          <Link to="/catalog/bouquets" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                            <div className="text-sm font-medium leading-none">Kytice</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                              Krásné kytice pro každou příležitost
-                            </p>
-                          </Link>
+                        <NavigationMenuLink href="/catalog/bouquets" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Kytice</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Krásné kytice pro každou příležitost
+                          </p>
                         </NavigationMenuLink>
                       </li>
                       <li>
-                        <NavigationMenuLink asChild>
-                          <Link to="/catalog/wedding" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                            <div className="text-sm font-medium leading-none">Svatební květiny</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                              Svatební kytice a dekorace
-                            </p>
-                          </Link>
+                        <NavigationMenuLink href="/catalog/wedding" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Svatební květiny</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Svatební kytice a dekorace
+                          </p>
                         </NavigationMenuLink>
                       </li>
                       <li>
-                        <NavigationMenuLink asChild>
-                          <Link to="/catalog/plants" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                            <div className="text-sm font-medium leading-none">Pokojové rostliny</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                              Zelené rostliny pro váš domov
-                            </p>
-                          </Link>
+                        <NavigationMenuLink href="/catalog/plants" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Pokojové rostliny</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Zelené rostliny pro váš domov
+                          </p>
                         </NavigationMenuLink>
                       </li>
                       <li>
-                        <NavigationMenuLink asChild>
-                          <Link to="/catalog/gifts" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                            <div className="text-sm font-medium leading-none">Dárky</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                              Dárkové předměty a doplňky
-                            </p>
-                          </Link>
+                        <NavigationMenuLink href="/catalog/gifts" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Dárky</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Dárkové předměty a doplňky
+                          </p>
                         </NavigationMenuLink>
                       </li>
                     </ul>
@@ -112,35 +102,27 @@ const Header = () => {
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <Link to="/custom-bouquet">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Vlastní kytice
-                    </NavigationMenuLink>
-                  </Link>
+                  <NavigationMenuLink href="/custom-bouquet" className={navigationMenuTriggerStyle()}>
+                    Vlastní kytice
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <Link to="/delivery">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Doručení
-                    </NavigationMenuLink>
-                  </Link>
+                  <NavigationMenuLink href="/delivery" className={navigationMenuTriggerStyle()}>
+                    Doručení
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <Link to="/blog">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Blog
-                    </NavigationMenuLink>
-                  </Link>
+                  <NavigationMenuLink href="/blog" className={navigationMenuTriggerStyle()}>
+                    Blog
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <Link to="/contact">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Kontakt
-                    </NavigationMenuLink>
-                  </Link>
+                  <NavigationMenuLink href="/contact" className={navigationMenuTriggerStyle()}>
+                    Kontakt
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>

@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useCartContext } from '@/hooks/use-cart';
+import { useCart } from '@/context/CartContext';
 import Layout from "@/components/layout/Layout";
 import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 
 export default function Cart() {
-  const { cart, removeFromCart, updateQuantity, getTotal, clearCart } = useCartContext();
+  const { cart, removeFromCart, updateQuantity, getTotal, clearCart } = useCart();
   
   if (cart.length === 0) {
     return (

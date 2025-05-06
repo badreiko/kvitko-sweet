@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Filter, X, ChevronDown, Grid3X3, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/context/CartContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCartContext } from "@/hooks/use-cart";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
   product: {
@@ -18,7 +18,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addToCart } = useCartContext();
+  const { addToCart } = useCart();
 
   const handleAddToCart = () => {
     addToCart({

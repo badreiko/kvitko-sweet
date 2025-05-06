@@ -2,13 +2,13 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { useCartContext } from '@/hooks/use-cart';
+import { useCart } from '@/context/CartContext';
 import Layout from "@/components/layout/Layout";
 import products from '@/data/products';
 
 export default function Product() {
   const { id } = useParams<{ id: string }>();
-  const { addToCart } = useCartContext();
+  const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   
   // Находим продукт по ID
