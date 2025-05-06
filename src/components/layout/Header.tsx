@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, ShoppingCart, User, Search } from "lucide-react";
+import { Menu, X, ShoppingCart, User, Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,11 +14,35 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle
 } from "@/components/ui/navigation-menu";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import Logo from "./Logo";
+import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 
 const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const { cart, getItemsCount } = useCart();
+  
+  // Количество товаров в корзине
+  const itemsCount = getItemsCount();
+
+  // Обработчик выхода из системы
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   return (
     <header className="bg-background border-b border-border sticky top-0 z-40">
@@ -133,18 +157,56 @@ const Header = () => {
               <Search className="h-5 w-5" />
             </Button>
             
-            <Link to="/account">
-              <Button variant="ghost" size="icon" aria-label="Můj účet">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Můj účet">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col">
+                      <span>Мой аккаунт</span>
+                      <span className="text-xs text-muted-foreground">{user.email}</span>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/account">Личный кабинет</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/account?tab=orders">Мои заказы</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/account?tab=bouquets">Мои букеты</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-destructive focus:text-destructive"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Выйти</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" size="icon" aria-label="Můj účet">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
             
             <Link to="/cart">
               <Button variant="ghost" size="icon" className="relative" aria-label="Košík">
                 <ShoppingCart className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                  0
-                </Badge>
+                {itemsCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                    {itemsCount}
+                  </Badge>
+                )}
               </Button>
             </Link>
             
@@ -167,6 +229,21 @@ const Header = () => {
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
+                  
+                  {/* User info in mobile menu */}
+                  {user && (
+                    <div className="mb-6 p-4 bg-muted rounded-lg">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                          <User className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{user.displayName || 'Пользователь'}</p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <nav className="flex flex-col gap-4">
                     <Link 
@@ -214,15 +291,40 @@ const Header = () => {
                   </nav>
                   
                   <div className="mt-auto flex flex-col gap-4">
-                    <Link 
-                      to="/account"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Button variant="outline" className="w-full">
-                        <User className="mr-2 h-4 w-4" />
-                        Můj účet
-                      </Button>
-                    </Link>
+                    {user ? (
+                      <>
+                        <Link 
+                          to="/account"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <Button variant="outline" className="w-full">
+                            <User className="mr-2 h-4 w-4" />
+                            Můj účet
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full"
+                          onClick={() => {
+                            handleLogout();
+                            setIsMobileMenuOpen(false);
+                          }}
+                        >
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Odhlásit se
+                        </Button>
+                      </>
+                    ) : (
+                      <Link 
+                        to="/login"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Button variant="outline" className="w-full">
+                          <User className="mr-2 h-4 w-4" />
+                          Přihlásit se
+                        </Button>
+                      </Link>
+                    )}
                     <Link 
                       to="/cart"
                       onClick={() => setIsMobileMenuOpen(false)}
@@ -230,6 +332,9 @@ const Header = () => {
                       <Button className="w-full">
                         <ShoppingCart className="mr-2 h-4 w-4" />
                         Košík
+                        {itemsCount > 0 && (
+                          <Badge className="ml-2">{itemsCount}</Badge>
+                        )}
                       </Button>
                     </Link>
                   </div>
