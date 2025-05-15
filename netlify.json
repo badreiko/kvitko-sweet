@@ -1,0 +1,9 @@
+{
+  "site_id": "kvitko-sweet",
+  "build": {
+    "base": "/",
+    "publish": "public",
+    "command": ""
+  },
+  "framework": "#static"
+}
