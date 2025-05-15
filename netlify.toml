@@ -1,6 +1,5 @@
 [build]
-  command = "node netlify-deploy.js"
-  publish = "dist"
+  publish = "public"
 
 [dev]
   command = "npm run dev"
