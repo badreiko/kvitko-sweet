@@ -13,7 +13,7 @@ export { default as FicusPlant } from './products/plants/ficus-lyrata.png';
 export { default as GiftBox } from './products/gifts/gift-box.png';
 export { default as GiftBasket } from './products/gifts/gift-basket.png';
 
-// Блог
+// Блог - существующие
 export { default as FlowerCare } from './blog/flower-care.png';
 export { default as SeasonalFlowers } from './blog/seasonal-flowers.png';
 export { default as FlowerSymbolism } from './blog/flower-symbolism.png';
@@ -44,3 +44,9 @@ export { default as ChocolateBox } from './products/additional/chocolate-box.png
 export { default as TeddyBear } from './products/additional/teddy-bear.png';
 export { default as WineBottle } from './products/additional/wine-bottle.png';
 export { default as ScentedCandle } from './products/additional/scented-candle.png';
+
+// Блог - новые (добавляем к существующим)
+export { default as OccasionFlowers } from './blog/occasion-flowers.webp';
+export { default as IndoorPlants } from './blog/indoor-plants.webp';
+export { default as SeasonalGarden } from './blog/seasonal-garden.webp';
+export { default as WeddingBouquetBlog } from './blog/wedding-bouquet.webp';

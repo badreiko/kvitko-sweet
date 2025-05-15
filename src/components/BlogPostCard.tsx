@@ -4,16 +4,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User } from "lucide-react";
 
+// Определение типа BlogPost для использования во всем приложении
+export interface BlogPost {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  imageUrl: string;
+  author: string;
+  date: string;
+  tags?: string[];
+}
+
 interface BlogPostCardProps {
-  post: {
-    id: string;
-    title: string;
-    excerpt: string;
-    imageUrl: string;
-    author: string;
-    date: string;
-    tags?: string[];
-  };
+  post: BlogPost;
 }
 
 export function BlogPostCard({ post }: BlogPostCardProps) {
@@ -43,7 +47,7 @@ export function BlogPostCard({ post }: BlogPostCardProps) {
           <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
             {post.title}
           </h3>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground mb-4 line-clamp-2">
             {post.excerpt}
           </p>
           <div className="flex items-center text-sm text-muted-foreground gap-4">

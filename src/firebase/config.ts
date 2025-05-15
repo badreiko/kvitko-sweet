@@ -7,13 +7,13 @@ import { getAnalytics } from "firebase/analytics";
 
 // Firebase конфигурация
 const firebaseConfig = {
-  apiKey: "AIzaSyD-yc1UoyATTyaDM3ZMESQFW22jFv6u_Sc",
-  authDomain: "kvitko-sweet.firebaseapp.com",
-  projectId: "kvitko-sweet",
-  storageBucket: "kvitko-sweet.firebasestorage.app",
-  messagingSenderId: "911440795607",
-  appId: "1:911440795607:web:232e974c3252c49c895d92",
-  measurementId: "G-25MZ8NWED0"
+  apiKey: "AIzaSyAI73IPE_YOOwB1K9-5mQFMHWcvvrJAkUU",
+  authDomain: "kvitko-sweet-d226a.firebaseapp.com",
+  projectId: "kvitko-sweet-d226a",
+  storageBucket: "kvitko-sweet-d226a.firebasestorage.app",
+  messagingSenderId: "132008587224",
+  appId: "1:132008587224:web:5d0191f34fd39d383f4cad",
+  measurementId: "G-GVNRZKMR3X"
 };
 
 // Инициализация Firebase

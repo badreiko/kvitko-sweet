@@ -1,11 +1,9 @@
 // src/pages/Account.tsx
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -56,11 +54,13 @@ interface CustomBouquet {
 // Заглушки для функций, которые должны быть реализованы в firebase/services
 const getUserOrders = async (userId: string): Promise<Order[]> => {
   // Здесь должна быть реальная имплементация
+  console.log(`Fetching orders for user ${userId}`);
   return [];
 };
 
 const getUserCustomBouquets = async (userId: string): Promise<CustomBouquet[]> => {
   // Здесь должна быть реальная имплементация
+  console.log(`Fetching custom bouquets for user ${userId}`);
   return [];
 };
 
@@ -114,13 +114,15 @@ export default function Account() {
     if (name.includes('.')) {
       // Обрабатываем вложенные поля (адрес)
       const [parent, child] = name.split('.');
-      setProfileData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof typeof prev],
-          [child]: value
-        }
-      }));
+      if (parent === 'address') {
+        setProfileData(prev => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            [child]: value
+          }
+        }));
+      }
     } else {
       // Обрабатываем обычные поля
       setProfileData(prev => ({
