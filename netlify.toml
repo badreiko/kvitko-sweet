@@ -1,6 +1,6 @@
 # Базовые настройки сборки и публикации
 [build]
-  command = "CI=false npm run build"
+  command = "node netlify-build.js"
   publish = "dist"
 
 # Настройки окружения
