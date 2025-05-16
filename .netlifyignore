@@ -1,0 +1,11 @@
+node_modules
+.git
+.cache
+dist
+build
+.vscode
+*.log
+*.tmp
+*.env*
+coverage
+public/_redirects
