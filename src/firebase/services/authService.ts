@@ -8,7 +8,9 @@ import {
   updateEmail,
   updatePassword,
   User as FirebaseUser,
-  onAuthStateChanged
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../config';
@@ -32,12 +34,48 @@ export interface User {
   isAdmin?: boolean;
 }
 
+// Вход через Google
+export const signInWithGoogle = async (): Promise<User & { firebaseUser: FirebaseUser }> => {
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const { user } = result;
+
+    // Проверяем, есть ли пользователь в Firestore
+    const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.uid));
+    if (userDoc.exists()) {
+      return {
+        id: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        ...userDoc.data(),
+        firebaseUser: user
+      };
+    } else {
+      // Если нет, создаём новую запись
+      const userData: User = {
+        id: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        isAdmin: false
+      };
+      await setDoc(doc(db, USERS_COLLECTION, user.uid), userData);
+      return { ...userData, firebaseUser: user };
+    }
+  } catch (error) {
+    console.error('Google sign-in error:', error);
+    throw error;
+  }
+};
+
 // Регистрация нового пользователя
 export const registerUser = async (
   email: string, 
   password: string, 
   displayName?: string
-): Promise<User> => {
+): Promise<User & { firebaseUser: FirebaseUser }> => {
   try {
     // Создаем учетную запись пользователя в Firebase Auth
     const credential = await createUserWithEmailAndPassword(auth, email, password);
@@ -59,7 +97,7 @@ export const registerUser = async (
     
     await setDoc(doc(db, USERS_COLLECTION, user.uid), userData);
     
-    return userData;
+    return { ...userData, firebaseUser: user };
   } catch (error) {
     console.error('Error registering user: ', error);
     throw error;
@@ -70,7 +108,7 @@ export const registerUser = async (
 export const loginUser = async (
   email: string, 
   password: string
-): Promise<User> => {
+): Promise<User & { firebaseUser: FirebaseUser }> => {
   try {
     const credential = await signInWithEmailAndPassword(auth, email, password);
     const { user } = credential;
@@ -84,8 +122,9 @@ export const loginUser = async (
         email: user.email || email,
         displayName: user.displayName || '',
         photoURL: user.photoURL || '',
-        ...userDoc.data()
-      } as User;
+        ...userDoc.data(),
+        firebaseUser: user
+      };
     } else {
       // Если нет записи в Firestore, создаем ее
       const userData: User = {
@@ -97,7 +136,7 @@ export const loginUser = async (
       };
       
       await setDoc(doc(db, USERS_COLLECTION, user.uid), userData);
-      return userData;
+      return { ...userData, firebaseUser: user };
     }
   } catch (error) {
     console.error('Error logging in: ', error);
@@ -116,7 +155,7 @@ export const logoutUser = async (): Promise<void> => {
 };
 
 // Получение текущего пользователя
-export const getCurrentUser = (): Promise<User | null> => {
+export const getCurrentUser = (): Promise<(User & { firebaseUser: FirebaseUser }) | null> => {
   return new Promise((resolve, reject) => {
     const unsubscribe = onAuthStateChanged(
       auth,
@@ -134,8 +173,9 @@ export const getCurrentUser = (): Promise<User | null> => {
                 email: user.email || '',
                 displayName: user.displayName || '',
                 photoURL: user.photoURL || '',
-                ...userDoc.data()
-              } as User);
+                ...userDoc.data(),
+                firebaseUser: user
+              });
             } else {
               // Если нет записи в Firestore, создаем ее
               const userData: User = {
@@ -147,7 +187,7 @@ export const getCurrentUser = (): Promise<User | null> => {
               };
               
               await setDoc(doc(db, USERS_COLLECTION, user.uid), userData);
-              resolve(userData);
+              resolve({ ...userData, firebaseUser: user });
             }
           } catch (error) {
             reject(error);

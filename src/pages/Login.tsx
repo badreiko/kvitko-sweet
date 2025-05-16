@@ -8,12 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import Layout from "@/components/layout/Layout";
+import { FcGoogle } from "react-icons/fc";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -56,7 +57,29 @@ export default function Login() {
                 <h1 className="text-2xl font-bold">Přihlášení</h1>
                 <p className="text-muted-foreground mt-2">Přihlaste se pro přístup ke svému účtu</p>
               </div>
-              
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2 mb-4"
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    await loginWithGoogle();
+                    toast.success("Přihlášení přes Google úspěšné");
+                    navigate(from, { replace: true });
+                  } catch (error: any) {
+                    toast.error("Google přihlášení se nezdařilo");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                <FcGoogle size={22} />
+                Přihlásit se přes Google
+              </Button>
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>

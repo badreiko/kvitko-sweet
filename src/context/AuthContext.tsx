@@ -7,7 +7,8 @@ import {
   logoutUser, 
   registerUser, 
   updateUserProfile, 
-  resetPassword 
+  resetPassword, 
+  signInWithGoogle
 } from '../firebase/services';
 
 interface AuthContextType {
@@ -18,6 +19,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -51,6 +53,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(loggedInUser);
     } catch (error) {
       console.error('Login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Вход через Google
+  const loginWithGoogle = async () => {
+    setLoading(true);
+    try {
+      const googleUser = await signInWithGoogle();
+      setUser(googleUser);
+    } catch (error) {
+      console.error('Google login error:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -127,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     updateProfile,
     sendPasswordReset,
+    loginWithGoogle,
     isAuthenticated: !!user
   };
 
