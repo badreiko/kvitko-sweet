@@ -23,6 +23,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminIndex from "./components/admin/AdminIndex";
 import Products from "./components/admin/Products";
 import ProductForm from "./components/admin/ProductForm";
+import Orders from "./components/admin/Orders";
+import Users from "./components/admin/Users";
+import Settings from "./components/admin/Settings";
+import Reports from "./components/admin/Reports";
 
 // Создаем клиент для React Query
 const queryClient = new QueryClient({
@@ -79,6 +83,10 @@ export default function App() {
               <Route path="/admin/products" element={<Products />} />
               <Route path="/admin/products/new" element={<ProductForm />} />
               <Route path="/admin/products/edit/:id" element={<ProductForm />} />
+              <Route path="/admin/orders" element={<Orders />} />
+              <Route path="/admin/users" element={<Users />} />
+              <Route path="/admin/settings" element={<Settings />} />
+              <Route path="/admin/reports" element={<Reports />} />
               
               {/* Обработка 404 */}
               <Route path="*" element={<ErrorPage />} />

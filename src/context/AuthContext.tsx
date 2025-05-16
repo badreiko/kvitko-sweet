@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       try {
         const currentUser = await getCurrentUser();
+        console.log('currentUser from Firebase:', currentUser);
         setUser(currentUser);
       } catch (error) {
         console.error('Error initializing auth:', error);
