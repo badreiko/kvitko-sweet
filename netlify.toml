@@ -1,6 +1,6 @@
 # Базовые настройки сборки и публикации
 [build]
-  command = "node netlify-build.js"
+  command = "node netlify-build.cjs"
   publish = "dist"
 
 # Настройки окружения
