@@ -4,8 +4,8 @@
   "production": {
     "framework": "vite",
     "build": {
-      "command": "",
-      "publish": "public"
+      "command": "CI=false npm run build",
+      "publish": "dist"
     }
   }
 }

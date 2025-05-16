@@ -2,8 +2,8 @@
   "site_id": "kvitko-sweet",
   "build": {
     "base": "/",
-    "publish": "public",
-    "command": ""
+    "publish": "dist",
+    "command": "CI=false npm run build"
   },
-  "framework": "#static"
+  "framework": "vite"
 }

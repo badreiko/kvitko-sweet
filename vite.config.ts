@@ -2,9 +2,30 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import fs from 'fs'
+
+// Функция для копирования файла _redirects после сборки
+const copyRedirects = () => {
+  return {
+    name: 'copy-redirects',
+    closeBundle() {
+      const sourcePath = path.resolve(__dirname, 'public', '_redirects')
+      const targetPath = path.resolve(__dirname, 'dist', '_redirects')
+      if (fs.existsSync(sourcePath)) {
+        fs.copyFileSync(sourcePath, targetPath)
+        console.log('\n✅ _redirects file copied to dist folder')
+      } else {
+        console.warn('\n⚠️ _redirects file not found in public folder')
+      }
+    }
+  }
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    copyRedirects()
+  ],
   server: {
     port: 3000,
     open: true,
@@ -13,12 +34,12 @@ export default defineConfig({
     }
   },
   build: {
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: false,
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: process.env.NODE_ENV === 'production',
-        drop_debugger: process.env.NODE_ENV === 'production'
+        drop_console: true,
+        drop_debugger: true
       },
       format: {
         comments: false

@@ -2,15 +2,17 @@
   "name": "kvitko-sweet",
   "build": {
     "base": "/",
-    "publish": "public",
-    "command": "",
+    "publish": "dist",
+    "command": "CI=false npm run build",
     "environment": {
       "NETLIFY_USE_YARN": "false",
       "NODE_VERSION": "18",
-      "NPM_FLAGS": "--legacy-peer-deps"
+      "NPM_FLAGS": "--legacy-peer-deps",
+      "CI": "false",
+      "SKIP_PREFLIGHT_CHECK": "true"
     }
   },
-  "framework": "#static",
+  "framework": "vite",
   "headers": [
     {
       "source": "/assets/**",

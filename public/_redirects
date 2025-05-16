@@ -3,7 +3,7 @@
 # Перенаправление с www на non-www
 https://www.kvitko-sweet.netlify.app/* https://kvitko-sweet.netlify.app/:splat 301!
 
-# SPA fallback
+# SPA fallback - все маршруты направляются на index.html
 /* /index.html 200
 
 # Защита API-маршрутов
