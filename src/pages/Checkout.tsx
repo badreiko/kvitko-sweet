@@ -206,6 +206,34 @@ export default function Checkout() {
 
             const newOrderId = await createOrder(orderData);
             setOrderId(newOrderId);
+
+            // Send email notification
+            try {
+                await fetch('/.netlify/functions/order-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: newOrderId,
+                        customerEmail: customerInfo.email,
+                        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+                        items: cart.map(item => ({
+                            name: item.name,
+                            quantity: item.quantity,
+                            price: item.price
+                        })),
+                        totalPrice: getFinalTotal(),
+                        deliveryType: deliveryType,
+                        deliveryAddress: deliveryType === 'delivery'
+                            ? `${customerInfo.street}, ${customerInfo.city} ${customerInfo.postalCode}`
+                            : (stores.find(s => s.id === selectedStore)?.name || 'Osobní odběr'),
+                        paymentMethod: payment?.name || ''
+                    })
+                });
+            } catch (emailError) {
+                console.error('Failed to send notification email:', emailError);
+                // Don't fail the order if email fails
+            }
+
             clearCart();
             setStep(4);
             toast.success('Objednávka byla úspěšně vytvořena!');
@@ -221,8 +249,8 @@ export default function Checkout() {
     const ProgressStep = ({ number, label, isActive, isComplete }: { number: number; label: string; isActive: boolean; isComplete: boolean }) => (
         <div className="flex flex-col items-center">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isComplete ? 'bg-primary text-primary-foreground' :
-                    isActive ? 'bg-primary text-primary-foreground' :
-                        'bg-muted text-muted-foreground'
+                isActive ? 'bg-primary text-primary-foreground' :
+                    'bg-muted text-muted-foreground'
                 }`}>
                 {isComplete ? <Check className="h-5 w-5" /> : number}
             </div>
@@ -394,8 +422,8 @@ export default function Checkout() {
                                             type="button"
                                             onClick={() => setDeliveryType('delivery')}
                                             className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${deliveryType === 'delivery'
-                                                    ? 'border-primary bg-primary/5'
-                                                    : 'border-border hover:border-primary/50'
+                                                ? 'border-primary bg-primary/5'
+                                                : 'border-border hover:border-primary/50'
                                                 }`}
                                         >
                                             <Truck className={`h-8 w-8 ${deliveryType === 'delivery' ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -410,8 +438,8 @@ export default function Checkout() {
                                                 setSelectedZone('');
                                             }}
                                             className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${deliveryType === 'pickup'
-                                                    ? 'border-primary bg-primary/5'
-                                                    : 'border-border hover:border-primary/50'
+                                                ? 'border-primary bg-primary/5'
+                                                : 'border-border hover:border-primary/50'
                                                 }`}
                                         >
                                             <StoreIcon className={`h-8 w-8 ${deliveryType === 'pickup' ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -439,8 +467,8 @@ export default function Checkout() {
                                                                 <Label
                                                                     htmlFor={store.id}
                                                                     className={`block cursor-pointer p-4 rounded-lg border transition-colors ${selectedStore === store.id
-                                                                            ? 'border-primary bg-primary/5'
-                                                                            : 'border-border hover:border-primary/50'
+                                                                        ? 'border-primary bg-primary/5'
+                                                                        : 'border-border hover:border-primary/50'
                                                                         }`}
                                                                 >
                                                                     <div className="flex items-start gap-3">
@@ -481,8 +509,8 @@ export default function Checkout() {
                                                                 <Label
                                                                     htmlFor={zone.id}
                                                                     className={`block cursor-pointer p-4 rounded-lg border transition-colors ${selectedZone === zone.id
-                                                                            ? 'border-primary bg-primary/5'
-                                                                            : 'border-border hover:border-primary/50'
+                                                                        ? 'border-primary bg-primary/5'
+                                                                        : 'border-border hover:border-primary/50'
                                                                         }`}
                                                                 >
                                                                     <div className="flex justify-between items-center">
@@ -538,8 +566,8 @@ export default function Checkout() {
                                                         <Label
                                                             htmlFor={method.id}
                                                             className={`block cursor-pointer p-4 rounded-lg border transition-colors ${selectedPayment === method.id
-                                                                    ? 'border-primary bg-primary/5'
-                                                                    : 'border-border hover:border-primary/50'
+                                                                ? 'border-primary bg-primary/5'
+                                                                : 'border-border hover:border-primary/50'
                                                                 }`}
                                                         >
                                                             <div className="flex items-center gap-3">
