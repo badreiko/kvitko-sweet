@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   Truck,
   XCircle,
-  ShoppingBag
+  ShoppingBag,
+  Pencil
 } from "lucide-react";
 import {
   Table,
@@ -47,6 +48,7 @@ import {
   getAllOrders,
   updateOrderStatus
 } from "@/firebase/services/orderService";
+import OrderEditDialog from "./OrderEditDialog";
 
 // Форматирование даты
 const formatDate = (date: Date | undefined) => {
@@ -96,6 +98,8 @@ const Orders: FC = () => {
   const [filterStatus, setFilterStatus] = useState<Order['status'] | "all">("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   // Загрузка заказов
   const loadOrders = async () => {
@@ -274,8 +278,20 @@ const Orders: FC = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleViewDetails(order)}
+                              title="Просмотр"
                             >
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditingOrder(order);
+                                setIsEditDialogOpen(true);
+                              }}
+                              title="Редактировать"
+                            >
+                              <Pencil className="h-4 w-4" />
                             </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -454,6 +470,14 @@ const Orders: FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Order Edit Dialog */}
+      <OrderEditDialog
+        order={editingOrder}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onOrderUpdated={loadOrders}
+      />
     </AdminLayout>
   );
 };

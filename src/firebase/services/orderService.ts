@@ -255,6 +255,34 @@ export const updateOrderStatus = async (
   }
 };
 
+// Интерфейс для обновления заказа
+export interface OrderUpdateData {
+  delivery?: Order['delivery'];
+  shippingAddress?: Order['shippingAddress'];
+  payment?: Order['payment'];
+  paymentStatus?: Order['paymentStatus'];
+  customerInfo?: Order['customerInfo'];
+  totalPrice?: number;
+  status?: Order['status'];
+}
+
+// Полное обновление заказа
+export const updateOrder = async (
+  orderId: string,
+  updates: OrderUpdateData
+): Promise<void> => {
+  try {
+    const orderRef = doc(db, ORDERS_COLLECTION, orderId);
+    await updateDoc(orderRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error updating order: ', error);
+    throw error;
+  }
+};
+
 // Создание пользовательской кytice
 export const createCustomBouquet = async (
   bouquetData: Omit<CustomBouquet, 'id' | 'createdAt'>
