@@ -219,7 +219,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
               <h2 className="section-title">Naše oblíbené produkty</h2>
-              <p className="text-muted-foreground max-w-4xl">
+              <p className="text-muted-foreground max-w-2xl">
                 Objevte naše nejpopulárnější kytice a rostliny, které si zamilovali naši zákazníci.
               </p>
             </div>
