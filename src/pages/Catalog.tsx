@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Filter, X, ChevronDown, Grid3X3, LayoutList } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import { Filter, X, Grid3X3, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/context/CartContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
@@ -14,42 +12,144 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/layout/Layout";
 import { ProductCard } from "@/components/ProductCard";
-import { products } from "@/data/products";
 
-// Sample data for categories
-const categories = [
-  { id: "bouquets", name: "Kytice" },
-  { id: "plants", name: "Pokojové rostliny" },
-  { id: "wedding", name: "Svatební květiny" },
-  { id: "gifts", name: "Dárky" }
-];
+// Импортируем функции для работы с Firebase
+import {
+  getAllProducts,
+  Product
+} from "@/firebase/services/productService";
+import { Category, getAllCategories } from "@/firebase/services/categoryService";
 
-// Sample data for price ranges
-const priceRanges = [
-  { id: "0-500", name: "Do 500 Kč" },
-  { id: "500-1000", name: "500 - 1000 Kč" },
-  { id: "1000-1500", name: "1000 - 1500 Kč" },
-  { id: "1500+", name: "Nad 1500 Kč" }
-];
+// Определение диапазонов цен - используется в UI
 
 export default function Catalog() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation(); // Получаем текущий URL
+  const navigate = useNavigate(); // Для навигации без перезагрузки страницы
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000]);
-  
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // Определяем категорию из URL-пути или параметров запроса
+  const getCategoryFromUrl = () => {
+    // Проверяем, есть ли категория в пути URL (например, /catalog/bouquets)
+    const pathParts = location.pathname.split('/');
+    if (pathParts.length > 2 && pathParts[1] === 'catalog') {
+      return pathParts[2]; // Возвращаем категорию из пути
+    }
+
+    // Если нет в пути, проверяем параметры запроса
+    return searchParams.get("category") || "";
+  };
+
+  // Fetch products and categories on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const productsData = await getAllProducts();
+        const categoriesData = await getAllCategories();
+        setProducts(productsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Получение категории по ID
+  const getCategoryById = (categoryId: string) => {
+    return categories.find(cat => cat.id === categoryId);
+  };
+
+  // Получение названия категории по ID
+  const getCategoryName = (categoryId: string) => {
+    const category = getCategoryById(categoryId);
+    if (category) {
+      // Возвращаем оригинальное название из базы данных
+      return category.name;
+    }
+    return categoryId;
+  };
+
+  // Получение названия категории по slug
+  const getCategoryNameBySlug = (slug: string) => {
+    const category = categories.find(cat => cat.slug === slug);
+    return category ? category.name : slug;
+  };
+
+  // Получение slug категории по ID
+  const getCategorySlug = (categoryId: string) => {
+    const category = getCategoryById(categoryId);
+    return category?.slug || categoryId;
+  };
+
   // Get current filters from URL
-  const categoryFilter = searchParams.get("category") || "";
+  const categoryFilter = getCategoryFromUrl();
   const sortBy = searchParams.get("sort") || "featured";
-  
+
+  // Если категория изменилась, обновляем URL-параметры
+  useEffect(() => {
+    const currentCategory = searchParams.get("category") || "";
+    const urlCategory = getCategoryFromUrl();
+
+    // Если категория в URL-пути отличается от параметра запроса, обновляем параметры
+    if (urlCategory && urlCategory !== currentCategory) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("category", urlCategory);
+      setSearchParams(newParams);
+    }
+  }, [location.pathname, searchParams, setSearchParams]);
+
+  // Update filters
+  const updateFilters = (key: string, value: string) => {
+    if (key === "category") {
+      // Для категорий обновляем путь URL
+      if (value) {
+        // Переходим на /catalog/category-slug
+        navigate(`/catalog/${value}`);
+      } else {
+        // Переходим на общий каталог
+        navigate('/catalog');
+      }
+    } else {
+      // Для остальных фильтров обновляем только параметры запроса
+      const newParams = new URLSearchParams(searchParams);
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+      setSearchParams(newParams);
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    // Переходим на общий каталог без фильтров
+    navigate('/catalog');
+    setPriceRange([0, 2000]);
+  };
+
   // Filter products based on URL parameters
-  const filteredProducts = products.filter(product => {
-    if (categoryFilter && product.category !== categoryFilter) return false;
+  const filteredProducts = products.filter((product: Product) => {
+    // Фильтрация по категории - сравниваем slug категории товара с фильтром
+    if (categoryFilter && categories.length > 0) {
+      const productCategorySlug = getCategorySlug(product.category);
+      if (productCategorySlug !== categoryFilter) return false;
+    }
     if (product.price < priceRange[0] || product.price > priceRange[1]) return false;
     return true;
   });
-  
+
   // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
+  const sortedProducts = [...filteredProducts].sort((a: Product, b: Product) => {
     if (sortBy === "price-asc") return a.price - b.price;
     if (sortBy === "price-desc") return b.price - a.price;
     if (sortBy === "name") return a.name.localeCompare(b.name);
@@ -58,24 +158,23 @@ export default function Catalog() {
     if (!a.featured && b.featured) return 1;
     return 0;
   });
-  
-  // Update filters
-  const updateFilters = (key: string, value: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
-    } else {
-      newParams.delete(key);
-    }
-    setSearchParams(newParams);
-  };
-  
-  // Clear all filters
-  const clearFilters = () => {
-    setSearchParams({});
-    setPriceRange([0, 2000]);
-  };
-  
+
+  // Отображение индикатора загрузки, если данные еще загружаются
+  if (loading) {
+    return (
+      <Layout>
+        <section className="py-12">
+          <div className="container-custom text-center">
+            <div className="flex justify-center items-center py-32">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+              <span className="ml-3 text-lg">Загрузка...</span>
+            </div>
+          </div>
+        </section>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -87,7 +186,7 @@ export default function Catalog() {
           </p>
         </div>
       </section>
-      
+
       <section className="py-12">
         <div className="container-custom">
           <div className="flex flex-col lg:flex-row gap-8">
@@ -103,33 +202,33 @@ export default function Catalog() {
                     </Button>
                   )}
                 </div>
-                
+
                 {/* Categories */}
                 <div className="mb-6">
                   <h3 className="font-medium mb-3">Kategorie</h3>
                   <div className="space-y-2">
-                    {categories.map(category => (
+                    {categories.map((category: Category) => (
                       <div key={category.id} className="flex items-center">
-                        <Checkbox 
-                          id={`category-${category.id}`} 
-                          checked={categoryFilter === category.id}
+                        <Checkbox
+                          id={`category-${category.id}`}
+                          checked={categoryFilter === category.slug}
                           onCheckedChange={(checked) => {
-                            updateFilters("category", checked ? category.id : "");
+                            updateFilters("category", checked ? category.slug : "");
                           }}
                         />
-                        <Label 
+                        <Label
                           htmlFor={`category-${category.id}`}
                           className="ml-2 text-sm font-normal cursor-pointer"
                         >
-                          {category.name}
+                          {getCategoryName(category.id)}
                         </Label>
                       </div>
                     ))}
                   </div>
                 </div>
-                
+
                 <Separator className="my-6" />
-                
+
                 {/* Price Range */}
                 <div className="mb-6">
                   <h3 className="font-medium mb-3">Cena</h3>
@@ -150,13 +249,13 @@ export default function Catalog() {
                     </div>
                   </div>
                 </div>
-                
+
                 <Separator className="my-6" />
-                
+
                 {/* Sort By */}
                 <div>
                   <h3 className="font-medium mb-3">Řadit podle</h3>
-                  <RadioGroup 
+                  <RadioGroup
                     defaultValue="featured"
                     value={sortBy}
                     onValueChange={(value) => updateFilters("sort", value)}
@@ -181,7 +280,7 @@ export default function Catalog() {
                 </div>
               </div>
             </div>
-            
+
             {/* Mobile Filters */}
             <div className="lg:hidden mb-6">
               <div className="flex items-center justify-between mb-4">
@@ -203,33 +302,33 @@ export default function Catalog() {
                           </Button>
                         )}
                       </div>
-                      
+
                       {/* Categories */}
                       <div className="mb-6">
                         <h3 className="font-medium mb-3">Kategorie</h3>
                         <div className="space-y-2">
-                          {categories.map(category => (
+                          {categories.map((category: Category) => (
                             <div key={category.id} className="flex items-center">
-                              <Checkbox 
-                                id={`mobile-category-${category.id}`} 
-                                checked={categoryFilter === category.id}
+                              <Checkbox
+                                id={`mobile-category-${category.id}`}
+                                checked={categoryFilter === category.slug}
                                 onCheckedChange={(checked) => {
-                                  updateFilters("category", checked ? category.id : "");
+                                  updateFilters("category", checked ? category.slug : "");
                                 }}
                               />
-                              <Label 
+                              <Label
                                 htmlFor={`mobile-category-${category.id}`}
                                 className="ml-2 text-sm font-normal cursor-pointer"
                               >
-                                {category.name}
+                                {getCategoryName(category.id)}
                               </Label>
                             </div>
                           ))}
                         </div>
                       </div>
-                      
+
                       <Separator className="my-6" />
-                      
+
                       {/* Price Range */}
                       <div className="mb-6">
                         <h3 className="font-medium mb-3">Cena</h3>
@@ -250,13 +349,13 @@ export default function Catalog() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <Separator className="my-6" />
-                      
+
                       {/* Sort By */}
                       <div>
                         <h3 className="font-medium mb-3">Řadit podle</h3>
-                        <RadioGroup 
+                        <RadioGroup
                           defaultValue="featured"
                           value={sortBy}
                           onValueChange={(value) => updateFilters("sort", value)}
@@ -282,7 +381,7 @@ export default function Catalog() {
                     </div>
                   </SheetContent>
                 </Sheet>
-                
+
                 <div className="flex items-center gap-2">
                   <Button
                     variant={viewMode === "grid" ? "default" : "outline"}
@@ -302,16 +401,16 @@ export default function Catalog() {
                   </Button>
                 </div>
               </div>
-              
+
               {/* Active Filters */}
               {(categoryFilter || sortBy !== "featured" || priceRange[0] > 0 || priceRange[1] < 2000) && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {categoryFilter && (
                     <Badge variant="secondary" className="flex items-center gap-1">
-                      {categories.find(c => c.id === categoryFilter)?.name}
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      {getCategoryNameBySlug(categoryFilter)}
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-4 w-4 p-0 ml-1"
                         onClick={() => updateFilters("category", "")}
                       >
@@ -319,13 +418,13 @@ export default function Catalog() {
                       </Button>
                     </Badge>
                   )}
-                  
+
                   {(priceRange[0] > 0 || priceRange[1] < 2000) && (
                     <Badge variant="secondary" className="flex items-center gap-1">
                       {priceRange[0]} Kč - {priceRange[1]} Kč
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-4 w-4 p-0 ml-1"
                         onClick={() => setPriceRange([0, 2000])}
                       >
@@ -333,15 +432,15 @@ export default function Catalog() {
                       </Button>
                     </Badge>
                   )}
-                  
+
                   {sortBy !== "featured" && (
                     <Badge variant="secondary" className="flex items-center gap-1">
                       {sortBy === "price-asc" && "Cena (nejnižší)"}
                       {sortBy === "price-desc" && "Cena (nejvyšší)"}
                       {sortBy === "name" && "Název (A-Z)"}
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-4 w-4 p-0 ml-1"
                         onClick={() => updateFilters("sort", "featured")}
                       >
@@ -352,7 +451,7 @@ export default function Catalog() {
                 </div>
               )}
             </div>
-            
+
             {/* Products */}
             <div className="flex-1">
               {/* Desktop Sort and View Toggle */}
@@ -382,7 +481,7 @@ export default function Catalog() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Active Filters - Desktop */}
               <div className="hidden lg:block">
                 {(categoryFilter || sortBy !== "featured" || priceRange[0] > 0 || priceRange[1] < 2000) && (
@@ -390,10 +489,10 @@ export default function Catalog() {
                     <span className="text-sm text-muted-foreground mr-2 pt-0.5">Aktivní filtry:</span>
                     {categoryFilter && (
                       <Badge variant="secondary" className="flex items-center gap-1">
-                        {categories.find(c => c.id === categoryFilter)?.name}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        {getCategoryNameBySlug(categoryFilter)}
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-4 w-4 p-0 ml-1"
                           onClick={() => updateFilters("category", "")}
                         >
@@ -401,13 +500,13 @@ export default function Catalog() {
                         </Button>
                       </Badge>
                     )}
-                    
+
                     {(priceRange[0] > 0 || priceRange[1] < 2000) && (
                       <Badge variant="secondary" className="flex items-center gap-1">
                         {priceRange[0]} Kč - {priceRange[1]} Kč
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-4 w-4 p-0 ml-1"
                           onClick={() => setPriceRange([0, 2000])}
                         >
@@ -415,15 +514,15 @@ export default function Catalog() {
                         </Button>
                       </Badge>
                     )}
-                    
+
                     {sortBy !== "featured" && (
                       <Badge variant="secondary" className="flex items-center gap-1">
                         {sortBy === "price-asc" && "Cena (nejnižší)"}
                         {sortBy === "price-desc" && "Cena (nejvyšší)"}
                         {sortBy === "name" && "Název (A-Z)"}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-4 w-4 p-0 ml-1"
                           onClick={() => updateFilters("sort", "featured")}
                         >
@@ -434,7 +533,7 @@ export default function Catalog() {
                   </div>
                 )}
               </div>
-              
+
               {/* Product Grid */}
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -448,9 +547,9 @@ export default function Catalog() {
                     <Card key={product.id} className="overflow-hidden border-border card-hover">
                       <div className="flex flex-col md:flex-row">
                         <div className="md:w-1/3 relative">
-                          <img 
-                            src={product.imageUrl} 
-                            alt={product.name} 
+                          <img
+                            src={product.imageUrl}
+                            alt={product.name}
                             className="w-full h-full object-cover aspect-square md:aspect-auto"
                           />
                           {product.featured && (
@@ -472,7 +571,7 @@ export default function Catalog() {
                             <p className="font-semibold text-lg">{product.price} Kč</p>
                             <div className="flex gap-3">
                               <Button variant="outline" asChild>
-                                <Link to={`/product/${product.id}`}>
+                                <Link to={`/product/${product.slug || product.id}`}>
                                   Detail
                                 </Link>
                               </Button>
@@ -487,7 +586,7 @@ export default function Catalog() {
                   ))}
                 </div>
               )}
-              
+
               {/* Empty State */}
               {sortedProducts.length === 0 && (
                 <div className="text-center py-12">

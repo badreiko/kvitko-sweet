@@ -9,6 +9,7 @@ interface ProductCardProps {
   product: {
     id: string;
     name: string;
+    slug?: string;
     description: string;
     price: number;
     imageUrl: string;
@@ -30,15 +31,15 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <Link 
-      to={`/product/${product.id}`} 
+    <Link
+      to={`/product/${product.slug || product.id}`}
       className="group"
     >
       <Card className="overflow-hidden border-border card-hover h-full">
         <div className="relative aspect-square overflow-hidden">
-          <img 
-            src={product.imageUrl} 
-            alt={product.name} 
+          <img
+            src={product.imageUrl}
+            alt={product.name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           {product.featured && (
@@ -58,8 +59,8 @@ export function ProductCard({ product }: ProductCardProps) {
           </p>
           <div className="flex justify-between items-center">
             <p className="font-semibold">{product.price} Kč</p>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
               onClick={(e) => {
                 e.preventDefault();

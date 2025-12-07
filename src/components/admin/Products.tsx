@@ -4,14 +4,11 @@ import {
   Package,
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
-  ChevronDown,
   Edit,
   Trash,
   Eye,
   FileDown,
-  ArrowUpDown,
   CheckCircle2,
   XCircle
 } from "lucide-react";
@@ -19,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,13 +41,14 @@ import {
 } from "@/components/ui/table";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { toast } from "sonner";
-import { getAllProducts, getAllCategories, deleteProduct } from "@/firebase/services";
+import { getAllProducts, deleteProduct } from "@/firebase/services";
 import { Product } from "../../../app/repo/apps/firestore/models/product";
+import { Category, getAllCategories } from "@/firebase/services/categoryService";
 
 export default function Products() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -81,6 +78,22 @@ export default function Products() {
     loadProducts();
   }, []);
 
+  // Получение названия категории по ID
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (category) {
+      // Возвращаем оригинальное название из базы данных
+      return category.name;
+    }
+    return categoryId; // Fallback к ID если категория не найдена
+  };
+
+  // Получение slug категории по ID
+  const getCategorySlug = (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category?.slug || categoryId;
+  };
+
   // Фильтрация и сортировка продуктов
   const filteredProducts = products
     .filter(product => {
@@ -88,8 +101,9 @@ export default function Products() {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           product.description.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Фильтрация по категории
-      const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
+      // Фильтрация по категории - используем slug для сравнения
+      const productCategorySlug = getCategorySlug(product.category);
+      const matchesCategory = categoryFilter === "all" || productCategorySlug === categoryFilter;
       
       return matchesSearch && matchesCategory;
     })
@@ -198,22 +212,6 @@ export default function Products() {
     }
   };
 
-  // Перевод категорий на русский
-  const getCategoryName = (category: string) => {
-    switch (category) {
-      case "bouquets":
-        return "Букеты";
-      case "plants":
-        return "Растения";
-      case "wedding":
-        return "Свадебные";
-      case "gifts":
-        return "Подарки";
-      default:
-        return category;
-    }
-  };
-
   if (loading) {
     return (
       <AdminLayout>
@@ -267,7 +265,7 @@ export default function Products() {
                 <SelectContent>
                   <SelectItem value="all">Все категории</SelectItem>
                   {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
+                    <SelectItem key={category.id} value={category.slug}>
                       {getCategoryName(category.id)}
                     </SelectItem>
                   ))}

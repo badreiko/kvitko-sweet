@@ -1,19 +1,73 @@
 // src/firebase/services/orderService.ts
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  query, 
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  query,
   where,
   orderBy,
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../config';
-import { Order, CustomBouquet } from '@/app/repo/apps/firestore/models/product';
+
+// Определение типов для заказов
+export interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  items: OrderItem[];
+  totalPrice: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  paymentStatus?: 'pending' | 'paid' | 'refunded';
+  shippingAddress?: {
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+  delivery?: {
+    type: 'delivery' | 'pickup';
+    zoneId: string;
+    zoneName: string;
+    price: number;
+  };
+  payment?: {
+    methodId: string;
+    methodName: string;
+  };
+  customerInfo?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    note?: string;
+  };
+  createdAt: Date;
+  deliveryDate?: Date;
+}
+
+export interface CustomBouquet {
+  id: string;
+  userId: string;
+  flowers: { id: string; name: string; quantity: number; price: number }[];
+  wrapping?: { id: string; name: string; price: number };
+  additionalItems?: { id: string; name: string; quantity: number; price: number }[];
+  message?: string;
+  totalPrice: number;
+  status: 'draft' | 'submitted' | 'confirmed' | 'cancelled';
+  createdAt: Date;
+}
 
 // Константы для коллекций
 const ORDERS_COLLECTION = 'orders';
@@ -27,7 +81,7 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt'>): P
       status: 'pending',
       createdAt: serverTimestamp()
     });
-    
+
     return docRef.id;
   } catch (error) {
     console.error('Error creating order: ', error);
@@ -40,7 +94,7 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
   try {
     const docRef = doc(db, ORDERS_COLLECTION, orderId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return {
         id: docSnap.id,
@@ -63,7 +117,7 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
       where('userId', '==', userId),
       orderBy('createdAt', 'desc')
     );
-    
+
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
@@ -78,20 +132,97 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
   }
 };
 
+// Получение всех заказов (для админ-панели)
+export const getAllOrders = async (): Promise<Order[]> => {
+  try {
+    const q = query(
+      collection(db, ORDERS_COLLECTION),
+      orderBy('createdAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        deliveryDate: data.deliveryDate?.toDate()
+      };
+    }) as Order[];
+  } catch (error) {
+    console.error('Error getting all orders: ', error);
+    throw error;
+  }
+};
+
+// Статистика заказов
+export interface OrderStats {
+  totalOrders: number;
+  pendingOrders: number;
+  processingOrders: number;
+  shippedOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  totalRevenue: number;
+  todayRevenue: number;
+  weekRevenue: number;
+  monthRevenue: number;
+}
+
+// Получение статистики заказов
+export const getOrderStats = async (): Promise<OrderStats> => {
+  try {
+    const orders = await getAllOrders();
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Подсчет выручки (только для доставленных заказов)
+    const deliveredOrders = orders.filter(o => o.status === 'delivered');
+
+    const stats: OrderStats = {
+      totalOrders: orders.length,
+      pendingOrders: orders.filter(o => o.status === 'pending').length,
+      processingOrders: orders.filter(o => o.status === 'processing').length,
+      shippedOrders: orders.filter(o => o.status === 'shipped').length,
+      deliveredOrders: deliveredOrders.length,
+      cancelledOrders: orders.filter(o => o.status === 'cancelled').length,
+      totalRevenue: deliveredOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0),
+      todayRevenue: deliveredOrders
+        .filter(o => o.createdAt >= startOfToday)
+        .reduce((sum, o) => sum + (o.totalPrice || 0), 0),
+      weekRevenue: deliveredOrders
+        .filter(o => o.createdAt >= startOfWeek)
+        .reduce((sum, o) => sum + (o.totalPrice || 0), 0),
+      monthRevenue: deliveredOrders
+        .filter(o => o.createdAt >= startOfMonth)
+        .reduce((sum, o) => sum + (o.totalPrice || 0), 0)
+    };
+
+    return stats;
+  } catch (error) {
+    console.error('Error getting order stats: ', error);
+    throw error;
+  }
+};
+
 // Обновление статуса заказа
 export const updateOrderStatus = async (
-  orderId: string, 
+  orderId: string,
   status: Order['status'],
   paymentStatus?: Order['paymentStatus']
 ): Promise<void> => {
   try {
     const orderRef = doc(db, ORDERS_COLLECTION, orderId);
     const updateData: { status: Order['status'], paymentStatus?: Order['paymentStatus'] } = { status };
-    
+
     if (paymentStatus) {
       updateData.paymentStatus = paymentStatus;
     }
-    
+
     await updateDoc(orderRef, updateData);
   } catch (error) {
     console.error('Error updating order status: ', error);
@@ -108,7 +239,7 @@ export const createCustomBouquet = async (
       ...bouquetData,
       createdAt: serverTimestamp()
     });
-    
+
     return docRef.id;
   } catch (error) {
     console.error('Error creating custom bouquet: ', error);
@@ -121,7 +252,7 @@ export const getCustomBouquetById = async (bouquetId: string): Promise<CustomBou
   try {
     const docRef = doc(db, CUSTOM_BOUQUETS_COLLECTION, bouquetId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return {
         id: docSnap.id,
@@ -146,7 +277,7 @@ export const getUserCustomBouquets = async (userId: string): Promise<CustomBouqu
       where('userId', '==', userId),
       orderBy('createdAt', 'desc')
     );
-    
+
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
@@ -162,7 +293,7 @@ export const getUserCustomBouquets = async (userId: string): Promise<CustomBouqu
 
 // Обновление статуса пользовательской кytice
 export const updateCustomBouquetStatus = async (
-  bouquetId: string, 
+  bouquetId: string,
   status: CustomBouquet['status']
 ): Promise<void> => {
   try {

@@ -1,6 +1,11 @@
 // copy-redirects.js
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Получаем __dirname для ES модулей
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Путь к исходному файлу _redirects
 const sourcePath = path.join(__dirname, 'public', '_redirects');
@@ -13,10 +18,10 @@ if (fs.existsSync(sourcePath)) {
   if (!fs.existsSync(path.join(__dirname, 'dist'))) {
     fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
   }
-  
+
   // Копируем файл
   fs.copyFileSync(sourcePath, targetPath);
-  console.log('Файл _redirects успешно скопирован в директорию dist');
+  console.log('✅ _redirects file copied to dist folder');
 } else {
-  console.error('Исходный файл _redirects не найден в директории public');
+  console.error('❌ Source file _redirects not found in public directory');
 }

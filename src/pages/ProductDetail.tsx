@@ -1,44 +1,33 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { 
-  ChevronRight, 
-  Truck, 
-  ShoppingBag, 
-  Heart, 
-  Share, 
-  Check, 
-  Minus, 
-  Plus, 
-  Star 
+import {
+  ChevronRight,
+  Truck,
+  ShoppingBag,
+  Heart,
+  Share,
+  Check,
+  Minus,
+  Plus,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductCard } from "@/components/ProductCard";
 import Layout from "@/components/layout/Layout";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
-import { getProductById, getFeaturedProducts } from "@/firebase/services";
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
-  inStock: boolean;
-  featured?: boolean;
-  tags?: string[];
-  createdAt: Date;
-}
+import { getProductById, getProductBySlug, getFeaturedProducts } from "@/firebase/services/productService";
+import { getCategoryById } from "@/firebase/services/categoryService";
+import { Product } from "@/firebase/services/productService";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [categoryName, setCategoryName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
@@ -47,14 +36,42 @@ export default function ProductDetail() {
   useEffect(() => {
     const loadProduct = async () => {
       if (!id) return;
-      
+
       setLoading(true);
       try {
-        const productData = await getProductById(id);
-        
+        // Zkusíme najít produkt podle slugu
+        let productData = await getProductBySlug(id);
+
+        // Pokud se nepodařilo najít podle slugu, zkusíme podle ID (pro zpětnou kompatibilitu)
+        if (!productData) {
+          productData = await getProductById(id);
+        }
+
         if (productData) {
           setProduct(productData);
-          
+
+          // Načtení názvu kategorie
+          if (productData.category) {
+            try {
+              const category = await getCategoryById(productData.category);
+              if (category) {
+                setCategoryName(category.name);
+              } else {
+                // Fallback pro statické kategorie
+                const categoryMap: Record<string, string> = {
+                  'bouquets': 'Kytice',
+                  'plants': 'Pokojové rostliny',
+                  'wedding': 'Svatební květiny',
+                  'gifts': 'Dárky'
+                };
+                setCategoryName(categoryMap[productData.category] || productData.category);
+              }
+            } catch (error) {
+              console.error("Error loading category:", error);
+              setCategoryName(productData.category);
+            }
+          }
+
           // Načítáme podobné produkty
           const featured = await getFeaturedProducts();
           const filtered = featured.filter(item => item.id !== id);
@@ -67,14 +84,14 @@ export default function ProductDetail() {
         setLoading(false);
       }
     };
-    
+
     loadProduct();
   }, [id]);
 
   // Přidání do košíku
   const handleAddToCart = () => {
     if (!product) return;
-    
+
     try {
       for (let i = 0; i < quantity; i++) {
         addToCart({
@@ -84,7 +101,7 @@ export default function ProductDetail() {
           imageUrl: product.imageUrl,
         });
       }
-      
+
       toast.success(`${product.name} přidán do košíku`);
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -128,10 +145,7 @@ export default function ProductDetail() {
           <Link to="/catalog" className="hover:text-foreground transition-colors">Katalog</Link>
           <ChevronRight className="h-4 w-4 mx-2" />
           <Link to={`/catalog/${product.category}`} className="hover:text-foreground transition-colors">
-            {product.category === 'bouquets' ? 'Kytice' : 
-             product.category === 'plants' ? 'Pokojové rostliny' : 
-             product.category === 'wedding' ? 'Svatební květiny' : 
-             product.category === 'gifts' ? 'Dárky' : product.category}
+            {categoryName || product.category}
           </Link>
           <ChevronRight className="h-4 w-4 mx-2" />
           <span>{product.name}</span>
@@ -142,13 +156,13 @@ export default function ProductDetail() {
           {/* Obrázek produktu */}
           <div className="relative">
             <div className="aspect-square overflow-hidden rounded-lg">
-              <img 
-                src={product.imageUrl} 
-                alt={product.name} 
+              <img
+                src={product.imageUrl}
+                alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
-            
+
             {product.featured && (
               <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground">
                 Oblíbené
@@ -169,27 +183,26 @@ export default function ProductDetail() {
           {/* Informace o produktu */}
           <div>
             <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-            
+
             <div className="flex items-center gap-2 mb-4">
               <div className="flex">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className={`h-5 w-5 ${
-                      star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                    }`}
+                    className={`h-5 w-5 ${star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                      }`}
                   />
                 ))}
               </div>
               <span className="text-sm text-muted-foreground">(12 recenzí)</span>
             </div>
-            
+
             <div className="text-2xl font-semibold mb-6">{product.price} Kč</div>
-            
+
             <p className="text-muted-foreground mb-6">
               {product.description}
             </p>
-            
+
             {/* Skladem */}
             <div className="flex items-center gap-2 mb-6">
               <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
@@ -197,7 +210,7 @@ export default function ProductDetail() {
               </div>
               <span className="text-green-600 font-medium">Skladem</span>
             </div>
-            
+
             {/* Přidat do košíku */}
             <div className="flex items-center gap-4 mb-8">
               <div className="flex items-center border border-input rounded-md">
@@ -219,13 +232,13 @@ export default function ProductDetail() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <Button className="flex-1" onClick={handleAddToCart}>
                 <ShoppingBag className="mr-2 h-5 w-5" />
                 Přidat do košíku
               </Button>
             </div>
-            
+
             {/* Informace o doručení */}
             <Card className="mb-6">
               <CardContent className="p-4">
@@ -240,7 +253,7 @@ export default function ProductDetail() {
                 </div>
               </CardContent>
             </Card>
-            
+
             {/* Štítky */}
             {product.tags && product.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -261,7 +274,7 @@ export default function ProductDetail() {
             <TabsTrigger value="care">Péče</TabsTrigger>
             <TabsTrigger value="reviews">Recenze (12)</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="details" className="mt-6">
             <Card>
               <CardContent className="p-6">
@@ -269,19 +282,14 @@ export default function ProductDetail() {
                 <p className="text-muted-foreground mb-6">
                   {product.description}
                 </p>
-                
+
                 <h3 className="text-lg font-semibold mb-4">Specifikace</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex justify-between pb-2 border-b border-border">
                     <span className="text-muted-foreground">Kategorie</span>
-                    <span>
-                      {product.category === 'bouquets' ? 'Kytice' : 
-                       product.category === 'plants' ? 'Pokojové rostliny' : 
-                       product.category === 'wedding' ? 'Svatební květiny' : 
-                       product.category === 'gifts' ? 'Dárky' : product.category}
-                    </span>
+                    <span>{categoryName || product.category}</span>
                   </div>
-                  
+
                   <div className="flex justify-between pb-2 border-b border-border">
                     <span className="text-muted-foreground">Kód produktu</span>
                     <span>KS-{product.id.slice(0, 6)}</span>
@@ -290,12 +298,12 @@ export default function ProductDetail() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="care" className="mt-6">
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Doporučení k péči</h3>
-                
+
                 {product.category === 'plants' ? (
                   <div className="space-y-4">
                     <p className="text-muted-foreground">
@@ -326,7 +334,7 @@ export default function ProductDetail() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="reviews" className="mt-6">
             <Card>
               <CardContent className="p-6">
@@ -334,7 +342,7 @@ export default function ProductDetail() {
                   <h3 className="text-lg font-semibold">Recenze zákazníků</h3>
                   <Button>Napsat recenzi</Button>
                 </div>
-                
+
                 <div className="space-y-6">
                   {/* Ukázkové recenze */}
                   <div className="border-b border-border pb-6">
@@ -346,9 +354,8 @@ export default function ProductDetail() {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`h-4 w-4 ${
-                            star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                          }`}
+                          className={`h-4 w-4 ${star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                            }`}
                         />
                       ))}
                     </div>
@@ -356,7 +363,7 @@ export default function ProductDetail() {
                       Krásné květiny, vypadají ještě lépe než na fotografii. Doručení bylo včas. Jsem velmi spokojená!
                     </p>
                   </div>
-                  
+
                   <div className="border-b border-border pb-6">
                     <div className="flex justify-between mb-2">
                       <span className="font-medium">Petr V.</span>
@@ -366,9 +373,8 @@ export default function ProductDetail() {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`h-4 w-4 ${
-                            star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                          }`}
+                          className={`h-4 w-4 ${star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                            }`}
                         />
                       ))}
                     </div>
@@ -376,7 +382,7 @@ export default function ProductDetail() {
                       Objednal jsem kytici pro manželku k výročí. Kvalita je vynikající, květiny jsou čerstvé. Manželka byla nadšená!
                     </p>
                   </div>
-                  
+
                   <div>
                     <div className="flex justify-between mb-2">
                       <span className="font-medium">Marie D.</span>
@@ -386,9 +392,8 @@ export default function ProductDetail() {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`h-4 w-4 ${
-                            star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                          }`}
+                          className={`h-4 w-4 ${star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                            }`}
                         />
                       ))}
                     </div>

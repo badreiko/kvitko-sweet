@@ -1,6 +1,6 @@
 // src/components/ProtectedRoute.tsx
 import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import Layout from '@/components/layout/Layout';
@@ -43,7 +43,7 @@ export default function ProtectedRoute({ children, adminOnly = false }: Protecte
             У вас нет прав для доступа к этой странице.
           </p>
           <Button asChild>
-            <Navigate to="/" replace />Вернуться на главную
+            <Link to="/">Вернуться на главную</Link>
           </Button>
         </div>
       </Layout>

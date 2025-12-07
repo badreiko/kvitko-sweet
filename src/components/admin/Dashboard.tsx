@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   ShoppingBag,
   Users,
-  Flower,
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
@@ -16,15 +15,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { 
-  getAllProducts, 
+import {
+  getAllProducts,
   getAllPublishedPosts,
   getAllCategories
 } from "@/firebase/services";
+import { getOrderStats, getAllOrders, Order } from "@/firebase/services/orderService";
+import { getUserStats } from "@/firebase/services/userService";
 import { toast } from "sonner";
 
 // Типы для статистики
@@ -68,48 +67,9 @@ const StatsCard = ({ title, value, description, icon: Icon, trend, percentage }:
   </Card>
 );
 
-// Имитация данных заказов
-const recentOrders = [
-  {
-    id: "ORD-123456",
-    customer: "Анна Новакова",
-    date: "2023-05-15",
-    status: "delivered",
-    total: 1290
-  },
-  {
-    id: "ORD-123455",
-    customer: "Петр Свобода",
-    date: "2023-05-14",
-    status: "processing",
-    total: 890
-  },
-  {
-    id: "ORD-123454",
-    customer: "Мария Дворакова",
-    date: "2023-05-14",
-    status: "pending",
-    total: 1490
-  },
-  {
-    id: "ORD-123453",
-    customer: "Ян Черны",
-    date: "2023-05-13",
-    status: "cancelled",
-    total: 690
-  },
-  {
-    id: "ORD-123452",
-    customer: "Ева Крайкова",
-    date: "2023-05-13",
-    status: "shipped",
-    total: 1190
-  }
-];
-
 // Форматирование даты
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
+const formatDate = (date: Date | undefined) => {
+  if (!date) return "-";
   return new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
     month: "short",
@@ -119,7 +79,18 @@ const formatDate = (dateString: string) => {
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState<{
+    totalProducts: number;
+    totalCategories: number;
+    totalUsers: number;
+    totalOrders: number;
+    revenueToday: number;
+    revenueWeek: number;
+    revenueMonth: number;
+    popularProducts: any[];
+    blogPosts: number;
+  }>({
     totalProducts: 0,
     totalCategories: 0,
     totalUsers: 0,
@@ -133,30 +104,59 @@ export default function Dashboard() {
 
   // Загрузка данных
   useEffect(() => {
+    console.log("Dashboard: mounting");
     const loadDashboardData = async () => {
       setLoading(true);
       try {
+        console.log("Dashboard: loading data...");
         // Загружаем данные из Firebase
-        const products = await getAllProducts();
-        const categories = await getAllCategories();
-        const blogPosts = await getAllPublishedPosts();
-        
-        // Имитация данных, которые пока не загружаем из Firebase
-        const mockedStats = {
-          totalUsers: 32,
-          totalOrders: 187,
-          revenueToday: 4570,
-          revenueWeek: 24980,
-          revenueMonth: 98450,
-          popularProducts: products.slice(0, 3)
-        };
-        
+        const [products, categories, blogPosts] = await Promise.all([
+          getAllProducts(),
+          getAllCategories(),
+          getAllPublishedPosts()
+        ]);
+
+        // Загружаем реальную статистику из Firebase
+        let orderStats;
+        let orders: Order[] = [];
+        try {
+          orderStats = await getOrderStats();
+          orders = await getAllOrders();
+        } catch (e) {
+          console.error('Error loading order stats:', e);
+          orderStats = {
+            totalOrders: 0,
+            todayRevenue: 0,
+            weekRevenue: 0,
+            monthRevenue: 0
+          };
+        }
+
+        let userStats;
+        try {
+          userStats = await getUserStats();
+        } catch (e) {
+          console.error('Error loading user stats:', e);
+          userStats = {
+            totalUsers: 0
+          };
+        }
+
+        // Set recent orders (last 5)
+        setRecentOrders(orders.slice(0, 5));
+
         setStats({
           totalProducts: products.length,
           totalCategories: categories.length,
           blogPosts: blogPosts.length,
-          ...mockedStats
+          totalUsers: userStats.totalUsers || 0,
+          totalOrders: orderStats?.totalOrders || 0,
+          revenueToday: orderStats?.todayRevenue || 0,
+          revenueWeek: orderStats?.weekRevenue || 0,
+          revenueMonth: orderStats?.monthRevenue || 0,
+          popularProducts: products.slice(0, 3)
         });
+        console.log("Dashboard: data loaded successfully");
       } catch (error) {
         console.error("Error loading dashboard data:", error);
         toast.error("Не удалось загрузить данные для панели управления");
@@ -164,7 +164,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-    
+
     loadDashboardData();
   }, []);
 
@@ -197,24 +197,24 @@ export default function Dashboard() {
             Добро пожаловать в административную панель Kvitko Sweet
           </p>
         </div>
-        
+
         {/* Main Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard
             title="Доход сегодня"
             value={`${stats.revenueToday} Kč`}
-            description="по сравнению со вчера"
+            description="за сегодня"
             icon={DollarSign}
             trend="up"
-            percentage={12}
+            percentage={0} // Динамику пока сложно считать без истории
           />
           <StatsCard
             title="Заказы"
             value={stats.totalOrders}
-            description="за последний месяц"
+            description="всего заказов"
             icon={ShoppingBag}
             trend="up"
-            percentage={8}
+            percentage={0}
           />
           <StatsCard
             title="Товары"
@@ -225,37 +225,13 @@ export default function Dashboard() {
           <StatsCard
             title="Пользователи"
             value={stats.totalUsers}
-            description="зарегистрированных пользователей"
+            description="зарегистрированных"
             icon={Users}
             trend="up"
-            percentage={5}
+            percentage={0}
           />
         </div>
-        
-        {/* Revenue Chart */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Аналитика доходов</CardTitle>
-            <Tabs defaultValue="week">
-              <TabsList>
-                <TabsTrigger value="day">День</TabsTrigger>
-                <TabsTrigger value="week">Неделя</TabsTrigger>
-                <TabsTrigger value="month">Месяц</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
-              <div className="text-center">
-                <TrendingUp className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  Здесь будет отображаться график доходов.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
+
         {/* Recent Orders and Popular Products */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Orders */}
@@ -264,37 +240,48 @@ export default function Dashboard() {
               <CardTitle>Последние заказы</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentOrders.map((order) => {
-                  const StatusIcon = orderStatusConfig[order.status as keyof typeof orderStatusConfig]?.icon || Clock;
-                  
-                  return (
-                    <div key={order.id} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${orderStatusConfig[order.status as keyof typeof orderStatusConfig]?.color || "bg-gray-100"}`}>
-                          <StatusIcon className="h-4 w-4" />
+              {recentOrders.length === 0 ? (
+                <div className="text-center py-8">
+                  <ShoppingBag className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">Заказов пока нет</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentOrders.map((order) => {
+                    const StatusIcon = orderStatusConfig[order.status as keyof typeof orderStatusConfig]?.icon || Clock;
+                    const customerName = order.customerInfo
+                      ? `${order.customerInfo.firstName} ${order.customerInfo.lastName}`
+                      : 'Гость';
+
+                    return (
+                      <div key={order.id} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${orderStatusConfig[order.status as keyof typeof orderStatusConfig]?.color || "bg-gray-100"}`}>
+                            <StatusIcon className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{customerName}</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">{order.customer}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(order.date)}</p>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{order.totalPrice} Kč</p>
+                            <p className="text-xs text-muted-foreground">{order.id.slice(0, 8)}...</p>
+                          </div>
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link to={`/admin/orders`}>
+                              {/* Ссылка ведет к списку, так как детального роута /admin/orders/:id нет в App.tsx, или он открывается в диалоге */}
+                              <ArrowUpRight className="h-4 w-4" />
+                            </Link>
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{order.total} Kč</p>
-                          <p className="text-xs text-muted-foreground">{order.id}</p>
-                        </div>
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link to={`/admin/orders/${order.id}`}>
-                            <ArrowUpRight className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="mt-6">
                 <Button variant="outline" className="w-full" asChild>
                   <Link to="/admin/orders">Все заказы</Link>
@@ -302,7 +289,7 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Popular Products */}
           <Card>
             <CardHeader>
@@ -326,10 +313,10 @@ export default function Dashboard() {
                           <p className="font-semibold">{product.price} Kč</p>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {product.category === 'bouquets' ? 'Букеты' : 
-                           product.category === 'plants' ? 'Растения' : 
-                           product.category === 'wedding' ? 'Свадебные цветы' : 
-                           product.category === 'gifts' ? 'Подарки' : product.category}
+                          {product.category === 'bouquets' ? 'Букеты' :
+                            product.category === 'plants' ? 'Растения' :
+                              product.category === 'wedding' ? 'Свадебные цветы' :
+                                product.category === 'gifts' ? 'Подарки' : product.category}
                         </p>
                       </div>
                     </div>
@@ -340,7 +327,7 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              
+
               <div className="mt-6">
                 <Button variant="outline" className="w-full" asChild>
                   <Link to="/admin/products">Все товары</Link>
@@ -349,7 +336,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Quick Actions */}
         <Card>
           <CardHeader>
@@ -364,7 +351,7 @@ export default function Dashboard() {
                 </Link>
               </Button>
               <Button asChild variant="secondary" className="h-auto py-4 flex flex-col">
-                <Link to="/admin/blog/new">
+                <Link to="/admin/blog/posts?openNew=true">
                   <FileText className="h-8 w-8 mb-2" />
                   <span>Создать статью</span>
                 </Link>

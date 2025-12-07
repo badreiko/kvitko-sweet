@@ -5,16 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/layout/Layout";
 import ReactMarkdown from "react-markdown";
-import { blogContent } from "@/data/blogContent";
-import { blogPosts } from "@/data/blogPosts";
-import { BlogPost } from "@/components/BlogPostCard";
-
-// Simulace API volání
-const getPostById = async (id: string): Promise<BlogPost | undefined> => {
-  // V reálné aplikaci by zde bylo API volání
-  const post = blogPosts.find(post => post.id === id);
-  return post;
-};
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
+import { BlogPost, getPostById, getRelatedPosts } from "@/firebase/services/blogService";
 
 export default function BlogDetail() {
   const { id } = useParams<{ id: string }>();
@@ -22,36 +15,33 @@ export default function BlogDetail() {
   const [loading, setLoading] = useState(true);
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
 
-  // Funkce pro formátování data
-  const formatDate = (dateString: string) => {
-    return dateString; // V reálné aplikaci by zde bylo formátování data
+  // Функция для форматирования даты
+  const formatDate = (date: Date | null) => {
+    if (!date) return "";
+    return format(date, "dd MMMM yyyy", { locale: ru });
   };
 
-  // Načtení článku
+  // Загрузка статьи
   useEffect(() => {
     const loadPost = async () => {
       if (!id) return;
-      
+
       setLoading(true);
       try {
         const postData = await getPostById(id);
-        
+
         if (postData) {
-          // Získání úplného obsahu z blogContent
-          const fullContent = blogContent[postData.id as keyof typeof blogContent] || postData.content;
-          
-          setPost({
-            ...postData,
-            content: fullContent
-          });
-          
-          // Načítáme podobné články podle štítku (pokud existují)
+          setPost(postData);
+
+          // Загрузка похожих статей по тегу (если существуют)
           if (postData.tags && postData.tags.length > 0) {
             const mainTag = postData.tags[0];
-            const similar = blogPosts
-              .filter(p => p.id !== id && p.tags && p.tags.includes(mainTag))
-              .slice(0, 3);
-            setRelatedPosts(similar);
+            try {
+              const relatedPostsData = await getRelatedPosts(id, mainTag, 3);
+              setRelatedPosts(relatedPostsData);
+            } catch (error) {
+              console.error("Error loading related posts:", error);
+            }
           }
         }
       } catch (error) {
@@ -60,7 +50,7 @@ export default function BlogDetail() {
         setLoading(false);
       }
     };
-    
+
     loadPost();
   }, [id]);
 
@@ -104,12 +94,12 @@ export default function BlogDetail() {
         {/* Article header */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">{post.title}</h1>
-          
+
           {/* Meta info */}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-6">
             <div className="flex items-center">
               <Calendar className="mr-2 h-4 w-4" />
-              {formatDate(post.date)}
+              {post.publishedAt ? formatDate(post.publishedAt) : formatDate(post.createdAt)}
             </div>
             <div className="flex items-center">
               <User className="mr-2 h-4 w-4" />
@@ -130,8 +120,8 @@ export default function BlogDetail() {
 
           {/* Featured image */}
           <div className="aspect-[21/9] relative rounded-lg overflow-hidden mb-8">
-            <img 
-              src={post.imageUrl} 
+            <img
+              src={post.imageUrl}
               alt={post.title}
               className="w-full h-full object-cover"
             />
@@ -152,8 +142,8 @@ export default function BlogDetail() {
                 <Link to={`/blog/${relatedPost.id}`} key={relatedPost.id} className="block">
                   <div className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                     <div className="aspect-[16/9] relative">
-                      <img 
-                        src={relatedPost.imageUrl} 
+                      <img
+                        src={relatedPost.imageUrl}
                         alt={relatedPost.title}
                         className="w-full h-full object-cover"
                       />

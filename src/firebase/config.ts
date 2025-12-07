@@ -3,17 +3,17 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, Analytics } from "firebase/analytics";
 
-// Firebase конфигурация
+// Firebase конфигурация (можно переопределить через переменные окружения)
 const firebaseConfig = {
-  apiKey: "AIzaSyAI73IPE_YOOwB1K9-5mQFMHWcvvrJAkUU",
-  authDomain: "kvitko-sweet-d226a.firebaseapp.com",
-  projectId: "kvitko-sweet-d226a",
-  storageBucket: "kvitko-sweet-d226a.firebasestorage.app",
-  messagingSenderId: "132008587224",
-  appId: "1:132008587224:web:5d0191f34fd39d383f4cad",
-  measurementId: "G-GVNRZKMR3X"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAI73IPE_YOOwB1K9-5mQFMHWcvvrJAkUU",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "kvitko-sweet-d226a.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "kvitko-sweet-d226a",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "kvitko-sweet-d226a.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "132008587224",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:132008587224:web:5d0191f34fd39d383f4cad",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-GVNRZKMR3X"
 };
 
 // Инициализация Firebase
@@ -25,7 +25,7 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 // Analytics только в браузере
-let analytics = null;
+let analytics: Analytics | null = null;
 if (typeof window !== 'undefined') {
   analytics = getAnalytics(app);
 }

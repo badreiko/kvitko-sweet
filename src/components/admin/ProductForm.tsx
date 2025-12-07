@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Upload, Plus, X, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -19,7 +18,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -29,22 +27,23 @@ import {
   getProductById,
   getAllCategories,
   addProduct,
-  updateProduct
+  updateProduct,
+  Product
 } from "@/firebase/services";
 
 // Определение интерфейса Product для решения проблемы с импортом
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
-  inStock: boolean;
-  featured?: boolean;
-  tags?: string[];
-  createdAt: Date;
-}
+// interface Product {
+//   id: string;
+//   name: string;
+//   description: string;
+//   price: number;
+//   imageUrl: string;
+//   category: string;
+//   inStock: boolean;
+//   featured?: boolean;
+//   tags?: string[];
+//   createdAt: Date;
+// }
 
 export default function ProductForm() {
   const navigate = useNavigate();
@@ -187,22 +186,26 @@ export default function ProductForm() {
   // Сохранение продукта
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     
+    if (!productData.name || !productData.category) {
+      toast.error("Vyplňte všechna povinná pole");
+      return;
+    }
+    
+    setSaving(true);
     try {
-      // Проверка обязательных полей
-      if (!productData.name || !productData.category || productData.price === undefined) {
-        toast.error("Prosím vyplňte všechna povinná pole");
-        setSaving(false);
-        return;
-      }
-      
-      // Добавление или обновление продукта
+      // Подготавливаем данные для сохранения, убеждаемся что featured имеет значение по умолчанию
+      const dataToSave = {
+        ...productData,
+        featured: productData.featured || false,
+        tags: tags
+      };
+
       if (isEditing && id) {
-        await updateProduct(id, productData, imageFile || undefined);
+        await updateProduct(id, dataToSave, imageFile || undefined);
         toast.success("Produkt byl úspěšně aktualizován");
       } else {
-        const newProductId = await addProduct(productData as Omit<Product, 'id'>, imageFile || undefined);
+        await addProduct(dataToSave as Omit<Product, 'id'>, imageFile || undefined);
         toast.success("Produkt byl úspěšně přidán");
       }
       
@@ -218,18 +221,8 @@ export default function ProductForm() {
 
   // Получение названия категории
   const getCategoryName = (categoryId: string) => {
-    switch (categoryId) {
-      case "bouquets":
-        return "Kytice";
-      case "plants":
-        return "Rostliny";
-      case "wedding":
-        return "Svatební";
-      case "gifts":
-        return "Dárky";
-      default:
-        return categoryId;
-    }
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.name : categoryId;
   };
 
   if (loading) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Phone, Mail, Clock, Send, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,8 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import Layout from "@/components/layout/Layout";
+import { getSiteSettings, SiteSettings, defaultSettings } from "@/firebase/services/settingsService";
 
 export default function Contact() {
+  const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
+  const [loading, setLoading] = useState(true);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -17,23 +21,37 @@ export default function Contact() {
     subject: "general",
     message: ""
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await getSiteSettings();
+        setSettings(data);
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSettings();
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handleRadioChange = (value: string) => {
     setFormData(prev => ({ ...prev, subject: value }));
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     // Simulate form submission
     setTimeout(() => {
       setIsSubmitting(false);
@@ -47,7 +65,7 @@ export default function Contact() {
       });
     }, 1500);
   };
-  
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -59,16 +77,16 @@ export default function Contact() {
           </p>
         </div>
       </section>
-      
+
       <section className="py-12">
         <div className="container-custom">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
             <div>
+              <h2 className="text-2xl font-semibold mb-6">Napište nám</h2>
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-2xl font-semibold mb-6">Napište nám</h2>
-                  
+
                   {isSubmitted ? (
                     <div className="text-center py-8">
                       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
@@ -87,41 +105,41 @@ export default function Contact() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="name">Jméno a příjmení</Label>
-                          <Input 
-                            id="name" 
-                            name="name" 
-                            value={formData.name} 
-                            onChange={handleChange} 
-                            required 
+                          <Input
+                            id="name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            required
                           />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="email">E-mail</Label>
-                          <Input 
-                            id="email" 
-                            name="email" 
-                            type="email" 
-                            value={formData.email} 
-                            onChange={handleChange} 
-                            required 
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
                           />
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="phone">Telefon</Label>
-                        <Input 
-                          id="phone" 
-                          name="phone" 
-                          value={formData.phone} 
-                          onChange={handleChange} 
+                        <Input
+                          id="phone"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
                         />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label>Předmět zprávy</Label>
-                        <RadioGroup 
-                          value={formData.subject} 
+                        <RadioGroup
+                          value={formData.subject}
                           onValueChange={handleRadioChange}
                         >
                           <div className="flex items-center space-x-2">
@@ -142,19 +160,19 @@ export default function Contact() {
                           </div>
                         </RadioGroup>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="message">Zpráva</Label>
-                        <Textarea 
-                          id="message" 
-                          name="message" 
-                          rows={5} 
-                          value={formData.message} 
-                          onChange={handleChange} 
-                          required 
+                        <Textarea
+                          id="message"
+                          name="message"
+                          rows={5}
+                          value={formData.message}
+                          onChange={handleChange}
+                          required
                         />
                       </div>
-                      
+
                       <Button type="submit" className="w-full" disabled={isSubmitting}>
                         {isSubmitting ? (
                           <>
@@ -173,7 +191,7 @@ export default function Contact() {
                 </CardContent>
               </Card>
             </div>
-            
+
             {/* Contact Information */}
             <div className="space-y-8">
               <div>
@@ -187,13 +205,13 @@ export default function Contact() {
                         </div>
                         <div>
                           <h3 className="font-semibold">Adresa</h3>
-                          <p className="text-muted-foreground">Květinová 123</p>
+                          <p className="text-muted-foreground">{settings.address}</p>
                           <p className="text-muted-foreground">110 00 Praha 1</p>
                         </div>
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="flex items-start gap-4">
                         <div className="bg-primary/10 p-3 rounded-full shrink-0">
                           <Phone className="h-5 w-5 text-primary" />
@@ -201,15 +219,15 @@ export default function Contact() {
                         <div>
                           <h3 className="font-semibold">Telefon</h3>
                           <p className="text-muted-foreground">
-                            <a href="tel:+420123456789" className="hover:text-primary transition-colors">
-                              +420 123 456 789
+                            <a href={`tel:${settings.contactPhone}`} className="hover:text-primary transition-colors">
+                              {settings.contactPhone}
                             </a>
                           </p>
                         </div>
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="flex items-start gap-4">
                         <div className="bg-primary/10 p-3 rounded-full shrink-0">
                           <Mail className="h-5 w-5 text-primary" />
@@ -217,15 +235,15 @@ export default function Contact() {
                         <div>
                           <h3 className="font-semibold">E-mail</h3>
                           <p className="text-muted-foreground">
-                            <a href="mailto:info@kvitkos.cz" className="hover:text-primary transition-colors">
-                              info@kvitkos.cz
+                            <a href={`mailto:${settings.contactEmail}`} className="hover:text-primary transition-colors">
+                              {settings.contactEmail}
                             </a>
                           </p>
                         </div>
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="flex items-start gap-4">
                         <div className="bg-primary/10 p-3 rounded-full shrink-0">
                           <Clock className="h-5 w-5 text-primary" />
@@ -233,32 +251,43 @@ export default function Contact() {
                         <div>
                           <h3 className="font-semibold">Otevírací doba</h3>
                           <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                            <span>Pondělí - Pátek:</span>
-                            <span>9:00 - 19:00</span>
+                            <span>Pondělí:</span>
+                            <span>{settings.openingHours?.weekdays || "9:00 - 19:00"}</span>
+                            <span>Úterý:</span>
+                            <span>{settings.openingHours?.weekdays || "9:00 - 19:00"}</span>
+                            <span>Středa:</span>
+                            <span>{settings.openingHours?.weekdays || "9:00 - 19:00"}</span>
+                            <span>Čtvrtek:</span>
+                            <span>{settings.openingHours?.weekdays || "9:00 - 19:00"}</span>
+                            <span>Pátek:</span>
+                            <span>{settings.openingHours?.weekdays || "9:00 - 19:00"}</span>
                             <span>Sobota:</span>
-                            <span>9:00 - 17:00</span>
+                            <span>{settings.openingHours?.saturday || "9:00 - 17:00"}</span>
                             <span>Neděle:</span>
-                            <span>10:00 - 15:00</span>
+                            <span>{settings.openingHours?.sunday || "10:00 - 15:00"}</span>
                           </div>
+                          <p className="text-sm text-muted-foreground mt-3 italic">
+                            * O svátcích může být otevírací doba upravena
+                          </p>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
-              
+
               {/* Map */}
               <div>
                 <h2 className="text-2xl font-semibold mb-6">Kde nás najdete</h2>
                 <Card className="overflow-hidden">
                   <div className="aspect-video w-full">
-                    <iframe 
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2560.9058953816!2d14.4194153!3d50.0874654!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470b94e9e08e3b33%3A0x7acff08b90e9352!2sWenceslas%20Square!5e0!3m2!1sen!2scz!4v1651234567890!5m2!1sen!2scz" 
-                      width="100%" 
-                      height="100%" 
-                      style={{ border: 0 }} 
-                      allowFullScreen 
-                      loading="lazy" 
+                    <iframe
+                      src={settings.mapEmbedUrl}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                       title="Mapa"
                     ></iframe>
@@ -269,23 +298,23 @@ export default function Contact() {
           </div>
         </div>
       </section>
-      
+
       {/* FAQ Section */}
       <section className="py-12 bg-muted">
         <div className="container-custom">
           <h2 className="text-2xl font-semibold text-center mb-10">Často kladené otázky</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <Card>
               <CardContent className="p-6">
                 <h3 className="font-semibold text-lg mb-2">Jak dlouho dopředu je třeba objednat květiny?</h3>
                 <p className="text-muted-foreground">
-                  Pro běžné objednávky doporučujeme objednat alespoň 24 hodin předem. 
+                  Pro běžné objednávky doporučujeme objednat alespoň 24 hodin předem.
                   Pro větší události, jako jsou svatby, doporučujeme objednat několik týdnů až měsíců dopředu.
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-6">
                 <h3 className="font-semibold text-lg mb-2">Jaké jsou možnosti doručení?</h3>
@@ -294,22 +323,22 @@ export default function Contact() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-6">
                 <h3 className="font-semibold text-lg mb-2">Mohu si objednat květiny na konkrétní čas?</h3>
                 <p className="text-muted-foreground">
-                  Ano, nabízíme doručení v konkrétním časovém rozmezí za příplatek. 
+                  Ano, nabízíme doručení v konkrétním časovém rozmezí za příplatek.
                   Kontaktujte nás pro více informací.
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-6">
                 <h3 className="font-semibold text-lg mb-2">Jak dlouho vydrží vaše květiny?</h3>
                 <p className="text-muted-foreground">
-                  Naše květiny jsou vždy čerstvé a při správné péči vydrží 7-14 dní. 
+                  Naše květiny jsou vždy čerstvé a při správné péči vydrží 7-14 dní.
                   Ke každé kytici přikládáme návod na péči.
                 </p>
               </CardContent>

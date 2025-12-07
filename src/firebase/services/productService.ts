@@ -1,22 +1,38 @@
 // src/firebase/services/productService.ts
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
   where,
   orderBy,
   limit,
-  DocumentData,
   QueryConstraint
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config';
-import { Product } from '@/app/repo/apps/firestore/models/product';
+import { compressProductImage, formatFileSize } from '@/utils/imageCompression';
+import { slugify } from '@/utils/slugify';
+
+// Определение интерфейса Product
+export interface Product {
+  id: string;
+  name: string;
+  slug?: string;
+  description: string;
+  price: number;
+  discountPrice?: number;
+  imageUrl: string;
+  category: string;
+  tags?: string[];
+  featured: boolean;
+  inStock: boolean;
+  createdAt: Date;
+}
 
 // Константы для коллекций
 const PRODUCTS_COLLECTION = 'products';
@@ -41,7 +57,7 @@ export const getProductById = async (productId: string): Promise<Product | null>
   try {
     const docRef = doc(db, PRODUCTS_COLLECTION, productId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return {
         id: docSnap.id,
@@ -52,6 +68,31 @@ export const getProductById = async (productId: string): Promise<Product | null>
     }
   } catch (error) {
     console.error('Error getting product: ', error);
+    throw error;
+  }
+};
+
+// Получение продукта по Slug
+export const getProductBySlug = async (slug: string): Promise<Product | null> => {
+  try {
+    const q = query(
+      collection(db, PRODUCTS_COLLECTION),
+      where('slug', '==', slug),
+      limit(1)
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      return {
+        id: doc.id,
+        ...doc.data()
+      } as Product;
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting product by slug: ', error);
     throw error;
   }
 };
@@ -67,27 +108,27 @@ export const getFilteredProducts = async (
 ): Promise<Product[]> => {
   try {
     const constraints: QueryConstraint[] = [];
-    
+
     if (categoryId) {
       constraints.push(where('category', '==', categoryId));
     }
-    
+
     if (minPrice !== undefined) {
       constraints.push(where('price', '>=', minPrice));
     }
-    
+
     if (maxPrice !== undefined) {
       constraints.push(where('price', '<=', maxPrice));
     }
-    
+
     if (featured !== undefined) {
       constraints.push(where('featured', '==', featured));
     }
-    
+
     if (tags && tags.length > 0) {
       constraints.push(where('tags', 'array-contains-any', tags));
     }
-    
+
     // Сортировка
     if (sortBy) {
       switch (sortBy) {
@@ -107,10 +148,10 @@ export const getFilteredProducts = async (
       // По умолчанию сортируем по дате создания
       constraints.push(orderBy('createdAt', 'desc'));
     }
-    
+
     const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
-    
+
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -124,18 +165,26 @@ export const getFilteredProducts = async (
 // Получение популярных продуктов
 export const getFeaturedProducts = async (limitCount = 4): Promise<Product[]> => {
   try {
+    // Простой запрос без orderBy чтобы избежать составных индексов
     const q = query(
       collection(db, PRODUCTS_COLLECTION),
-      where('featured', '==', true),
-      orderBy('createdAt', 'desc'),
-      limit(limitCount)
+      where('featured', '==', true)
     );
-    
+
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
+    const products = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as Product[];
+
+    // Сортируем в JS и ограничиваем количество
+    return products
+      .sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, limitCount);
   } catch (error) {
     console.error('Error getting featured products: ', error);
     throw error;
@@ -143,26 +192,40 @@ export const getFeaturedProducts = async (limitCount = 4): Promise<Product[]> =>
 };
 
 // Добавление нового продукта (для админа)
-export const addProduct = async (product: Omit<Product, 'id'>, imageFile?: File): Promise<string> => {
+export const addProduct = async (
+  product: Omit<Product, 'id'>,
+  imageFile?: File,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
   try {
+    // Генерируем slug
+    const slug = slugify(product.name);
+
     // Создаем продукт без изображения
     const docRef = await addDoc(collection(db, PRODUCTS_COLLECTION), {
       ...product,
+      slug,
       createdAt: new Date()
     });
-    
-    // Если есть файл изображения, загружаем его
+
+    // Если есть файл изображения, сжимаем и загружаем его
     if (imageFile) {
-      const imageRef = ref(storage, `products/${docRef.id}`);
-      await uploadBytes(imageRef, imageFile);
+      console.log(`[ProductService] Сжатие изображения: ${formatFileSize(imageFile.size)}`);
+
+      // Сжимаем изображение
+      const compressedResult = await compressProductImage(imageFile, onProgress);
+      console.log(`[ProductService] Сжато: ${formatFileSize(compressedResult.compressedSize)} (${compressedResult.compressionRatio.toFixed(1)}%)`);
+
+      const imageRef = ref(storage, `products/${docRef.id}.webp`);
+      await uploadBytes(imageRef, compressedResult.file);
       const imageUrl = await getDownloadURL(imageRef);
-      
+
       // Обновляем продукт с URL изображения
       await updateDoc(docRef, {
         imageUrl
       });
     }
-    
+
     return docRef.id;
   } catch (error) {
     console.error('Error adding product: ', error);
@@ -172,33 +235,45 @@ export const addProduct = async (product: Omit<Product, 'id'>, imageFile?: File)
 
 // Обновление продукта (для админа)
 export const updateProduct = async (
-  productId: string, 
-  productData: Partial<Product>, 
-  imageFile?: File
+  productId: string,
+  productData: Partial<Product>,
+  imageFile?: File,
+  onProgress?: (progress: number) => void
 ): Promise<void> => {
   try {
     const productRef = doc(db, PRODUCTS_COLLECTION, productId);
-    
-    // Если есть новый файл изображения, загружаем его
+
+    // Если изменилось имя, обновляем slug
+    if (productData.name) {
+      productData.slug = slugify(productData.name);
+    }
+
+    // Если есть новый файл изображения, сжимаем и загружаем его
     if (imageFile) {
+      console.log(`[ProductService] Сжатие нового изображения: ${formatFileSize(imageFile.size)}`);
+
       // Удаляем старое изображение, если оно существует
       try {
         const oldImageRef = ref(storage, `products/${productId}`);
         await deleteObject(oldImageRef);
-      } catch (error) {
+      } catch {
         // Игнорируем ошибку, если старого изображения нет
-        console.log('No old image to delete or error: ', error);
+        console.log('[ProductService] Нет старого изображения для удаления');
       }
-      
+
+      // Сжимаем изображение
+      const compressedResult = await compressProductImage(imageFile, onProgress);
+      console.log(`[ProductService] Сжато: ${formatFileSize(compressedResult.compressedSize)}`);
+
       // Загружаем новое изображение
-      const imageRef = ref(storage, `products/${productId}`);
-      await uploadBytes(imageRef, imageFile);
+      const imageRef = ref(storage, `products/${productId}.webp`);
+      await uploadBytes(imageRef, compressedResult.file);
       const imageUrl = await getDownloadURL(imageRef);
-      
+
       // Добавляем URL изображения в обновляемые данные
       productData.imageUrl = imageUrl;
     }
-    
+
     // Обновляем продукт
     await updateDoc(productRef, productData);
   } catch (error) {
@@ -212,7 +287,7 @@ export const deleteProduct = async (productId: string): Promise<void> => {
   try {
     // Удаляем продукт
     await deleteDoc(doc(db, PRODUCTS_COLLECTION, productId));
-    
+
     // Удаляем изображение продукта, если оно существует
     try {
       const imageRef = ref(storage, `products/${productId}`);
