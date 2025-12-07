@@ -363,7 +363,7 @@ export default function Account() {
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start mb-4">
                               <div>
-                                <p className="font-medium">Objednávka #{order.id.slice(0, 6)}</p>
+                                <p className="font-medium">Objednávka #{order.orderNumber || order.id.slice(0, 6)}</p>
                                 <p className="text-sm text-muted-foreground">
                                   {new Date(order.createdAt).toLocaleDateString('cs-CZ')}
                                 </p>

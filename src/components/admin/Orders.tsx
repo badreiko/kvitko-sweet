@@ -253,7 +253,7 @@ const Orders: FC = () => {
                     return (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">
-                          <span className="font-mono text-sm">{order.id.slice(0, 8)}...</span>
+                          <span className="font-mono text-sm">{order.orderNumber || order.id.slice(0, 8)}</span>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {formatDate(order.createdAt)}

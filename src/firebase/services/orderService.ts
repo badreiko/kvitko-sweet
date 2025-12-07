@@ -25,6 +25,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber: string;
   userId: string;
   items: OrderItem[];
   totalPrice: number;
@@ -73,16 +74,40 @@ export interface CustomBouquet {
 const ORDERS_COLLECTION = 'orders';
 const CUSTOM_BOUQUETS_COLLECTION = 'customBouquets';
 
+// Генерация номера заказа (KS-YYYYMMDD-NNN)
+const generateOrderNumber = async (): Promise<string> => {
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+  const prefix = `KS-${dateStr}`;
+
+  // Получаем заказы за сегодня для подсчета последовательного номера
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const q = query(
+    collection(db, ORDERS_COLLECTION),
+    where('createdAt', '>=', startOfDay),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(q);
+  const orderCount = snapshot.size + 1;
+  const sequence = String(orderCount).padStart(3, '0');
+
+  return `${prefix}-${sequence}`;
+};
+
 // Создание нового заказа
-export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> => {
+export const createOrder = async (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>): Promise<string> => {
   try {
+    const orderNumber = await generateOrderNumber();
+
     const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
       ...orderData,
+      orderNumber,
       status: 'pending',
       createdAt: serverTimestamp()
     });
 
-    return docRef.id;
+    return orderNumber;
   } catch (error) {
     console.error('Error creating order: ', error);
     throw error;
