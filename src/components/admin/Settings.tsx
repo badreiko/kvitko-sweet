@@ -289,6 +289,30 @@ const Settings: FC = () => {
                   />
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="facebookUrl">Facebook URL</Label>
+                    <Input
+                      id="facebookUrl"
+                      name="facebookUrl"
+                      placeholder="https://facebook.com/yourpage"
+                      value={settings.facebookUrl || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="instagramUrl">Instagram URL</Label>
+                    <Input
+                      id="instagramUrl"
+                      name="instagramUrl"
+                      placeholder="https://instagram.com/yourpage"
+                      value={settings.instagramUrl || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
                 <Separator />
 
                 <div>

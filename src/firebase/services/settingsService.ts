@@ -29,6 +29,8 @@ export interface SiteSettings {
     openingHours: OpeningHours;
     mapEmbedUrl: string;
     sectionImages: SectionImages;
+    facebookUrl?: string;
+    instagramUrl?: string;
 }
 
 const SETTINGS_COLLECTION = 'settings';
@@ -53,7 +55,9 @@ export const defaultSettings: SiteSettings = {
         sunday: "10:00 - 15:00"
     },
     mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2560.9058953816!2d14.4194153!3d50.0874654!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470b94e9e08e3b33%3A0x7acff08b90e9352!2sWenceslas%20Square!5e0!3m2!1sen!2scz!4v1651234567890!5m2!1sen!2scz",
-    sectionImages: {}
+    sectionImages: {},
+    facebookUrl: "",
+    instagramUrl: ""
 };
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
