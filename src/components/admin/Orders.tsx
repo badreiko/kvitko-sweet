@@ -70,16 +70,18 @@ const formatPrice = (price: number) => {
 };
 
 // Получение информации о статусе
-const getStatusInfo = (status: Order['status']) => {
+const getStatusInfo = (status: Order['status'], deliveryType?: string) => {
   switch (status) {
     case 'pending':
       return { label: 'Ожидает', color: 'bg-yellow-50 text-yellow-600 border-yellow-200', icon: Clock };
     case 'processing':
       return { label: 'Обработка', color: 'bg-blue-50 text-blue-600 border-blue-200', icon: Package };
+    case 'ready':
+      return { label: 'Готов к выдаче', color: 'bg-purple-50 text-purple-600 border-purple-200', icon: Package };
     case 'shipped':
       return { label: 'Отправлен', color: 'bg-purple-50 text-purple-600 border-purple-200', icon: Truck };
     case 'delivered':
-      return { label: 'Доставлен', color: 'bg-green-50 text-green-600 border-green-200', icon: CheckCircle2 };
+      return { label: deliveryType === 'pickup' ? 'Выдан' : 'Доставлен', color: 'bg-green-50 text-green-600 border-green-200', icon: CheckCircle2 };
     case 'cancelled':
       return { label: 'Отменен', color: 'bg-red-50 text-red-600 border-red-200', icon: XCircle };
     default:
@@ -246,7 +248,7 @@ const Orders: FC = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => {
-                    const statusInfo = getStatusInfo(order.status);
+                    const statusInfo = getStatusInfo(order.status, order.delivery?.type);
                     const StatusIcon = statusInfo.icon;
                     return (
                       <TableRow key={order.id}>
@@ -288,12 +290,25 @@ const Orders: FC = () => {
                                 <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'processing')}>
                                   <Package className="h-4 w-4 mr-2" /> В обработке
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'shipped')}>
-                                  <Truck className="h-4 w-4 mr-2" /> Отправлен
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'delivered')}>
-                                  <CheckCircle2 className="h-4 w-4 mr-2" /> Доставлен
-                                </DropdownMenuItem>
+                                {order.delivery?.type === 'pickup' ? (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'ready')}>
+                                      <Package className="h-4 w-4 mr-2" /> Готов к выдаче
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'delivered')}>
+                                      <CheckCircle2 className="h-4 w-4 mr-2" /> Выдан
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'shipped')}>
+                                      <Truck className="h-4 w-4 mr-2" /> Отправлен
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'delivered')}>
+                                      <CheckCircle2 className="h-4 w-4 mr-2" /> Доставлен
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="text-red-600"

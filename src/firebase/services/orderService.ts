@@ -28,7 +28,7 @@ export interface Order {
   userId: string;
   items: OrderItem[];
   totalPrice: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'ready' | 'shipped' | 'delivered' | 'cancelled';
   paymentStatus?: 'pending' | 'paid' | 'refunded';
   shippingAddress?: {
     street: string;
