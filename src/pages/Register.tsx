@@ -19,32 +19,32 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Kontrola hesel
     if (password !== confirmPassword) {
       toast.error("Hesla se neshodují");
       return;
     }
-    
+
     // Kontrola souhlasu s podmínkami
     if (!acceptTerms) {
       toast.error("Je nutné souhlasit s obchodními podmínkami");
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       await register(email, password, displayName);
-      toast.success("Registrace proběhla úspěšně");
-      navigate("/");
+      toast.success("Registrace proběhla úspěšně. Zkontrolujte svůj e-mail pro ověření účtu.");
+      navigate("/verify-email");
     } catch (error: any) {
       // Zpracování různých typů chyb
       let errorMessage = "Registrace se nezdařila";
-      
+
       if (error.code === "auth/email-already-in-use") {
         errorMessage = "Tento e-mail je již používán";
       } else if (error.code === "auth/invalid-email") {
@@ -52,13 +52,13 @@ export default function Register() {
       } else if (error.code === "auth/weak-password") {
         errorMessage = "Příliš slabé heslo";
       }
-      
+
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
     <Layout>
       <div className="container-custom py-12 flex items-center justify-center min-h-[70vh]">
@@ -69,7 +69,7 @@ export default function Register() {
                 <h1 className="text-2xl font-bold">Registrace</h1>
                 <p className="text-muted-foreground mt-2">Vytvořte si účet pro přístup k rozšířeným funkcím</p>
               </div>
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Jméno</Label>
@@ -81,7 +81,7 @@ export default function Register() {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
                   <Input
@@ -93,7 +93,7 @@ export default function Register() {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="password">Heslo</Label>
                   <Input
@@ -109,7 +109,7 @@ export default function Register() {
                     Minimálně 6 znaků
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Potvrďte heslo</Label>
                   <Input
@@ -122,12 +122,12 @@ export default function Register() {
                     minLength={6}
                   />
                 </div>
-                
+
                 <div className="flex items-center space-x-2 mt-4">
-                  <Checkbox 
-                    id="terms" 
-                    checked={acceptTerms} 
-                    onCheckedChange={(checked) => setAcceptTerms(checked as boolean)} 
+                  <Checkbox
+                    id="terms"
+                    checked={acceptTerms}
+                    onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
                   />
                   <Label htmlFor="terms" className="text-sm font-normal">
                     Souhlasím s{" "}
@@ -140,16 +140,16 @@ export default function Register() {
                     </Link>
                   </Label>
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   className="w-full"
                   disabled={loading || !acceptTerms}
                 >
                   {loading ? "Registruji..." : "Zaregistrovat se"}
                 </Button>
               </form>
-              
+
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   Už máte účet?{" "}

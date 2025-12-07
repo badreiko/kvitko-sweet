@@ -1,12 +1,13 @@
 // src/firebase/services/authService.ts
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   updateProfile,
   sendPasswordResetEmail,
   updateEmail,
   updatePassword,
+  sendEmailVerification,
   User as FirebaseUser,
   onAuthStateChanged,
   GoogleAuthProvider,
@@ -72,31 +73,36 @@ export const signInWithGoogle = async (): Promise<User & { firebaseUser: Firebas
 
 // Регистрация нового пользователя
 export const registerUser = async (
-  email: string, 
-  password: string, 
+  email: string,
+  password: string,
   displayName?: string
 ): Promise<User & { firebaseUser: FirebaseUser }> => {
   try {
     // Создаем учетную запись пользователя в Firebase Auth
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     const { user } = credential;
-    
+
     // Обновляем профиль пользователя с displayName
     if (displayName) {
       await updateProfile(user, { displayName });
     }
-    
+
+    // Отправляем email для верификации
+    await sendEmailVerification(user);
+
     // Создаем запись пользователя в Firestore
-    const userData: User = {
+    const userData = {
       id: user.uid,
       email: user.email || email,
       displayName: displayName || user.displayName || '',
       photoURL: user.photoURL || '',
-      isAdmin: false
+      isAdmin: false,
+      status: 'active',
+      createdAt: new Date()
     };
-    
+
     await setDoc(doc(db, USERS_COLLECTION, user.uid), userData);
-    
+
     return { ...userData, firebaseUser: user };
   } catch (error) {
     console.error('Error registering user: ', error);
@@ -106,16 +112,16 @@ export const registerUser = async (
 
 // Вход пользователя
 export const loginUser = async (
-  email: string, 
+  email: string,
   password: string
 ): Promise<User & { firebaseUser: FirebaseUser }> => {
   try {
     const credential = await signInWithEmailAndPassword(auth, email, password);
     const { user } = credential;
-    
+
     // Получаем дополнительные данные из Firestore
     const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.uid));
-    
+
     if (userDoc.exists()) {
       return {
         id: user.uid,
@@ -134,7 +140,7 @@ export const loginUser = async (
         photoURL: user.photoURL || '',
         isAdmin: false
       };
-      
+
       await setDoc(doc(db, USERS_COLLECTION, user.uid), userData);
       return { ...userData, firebaseUser: user };
     }
@@ -161,12 +167,12 @@ export const getCurrentUser = (): Promise<(User & { firebaseUser: FirebaseUser }
       auth,
       async (user) => {
         unsubscribe();
-        
+
         if (user) {
           // Пользователь аутентифицирован
           try {
             const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.uid));
-            
+
             if (userDoc.exists()) {
               resolve({
                 id: user.uid,
@@ -185,7 +191,7 @@ export const getCurrentUser = (): Promise<(User & { firebaseUser: FirebaseUser }
                 photoURL: user.photoURL || '',
                 isAdmin: false
               };
-              
+
               await setDoc(doc(db, USERS_COLLECTION, user.uid), userData);
               resolve({ ...userData, firebaseUser: user });
             }
@@ -209,23 +215,23 @@ export const updateUserProfile = async (
 ): Promise<void> => {
   try {
     const user = auth.currentUser;
-    
+
     if (!user) {
       throw new Error('User not authenticated');
     }
-    
+
     // Обновляем данные в Firestore
     await updateDoc(doc(db, USERS_COLLECTION, userId), userData);
-    
+
     // Обновляем данные в Firebase Auth, если они предоставлены
     if (userData.displayName) {
       await updateProfile(user, { displayName: userData.displayName });
     }
-    
+
     if (userData.photoURL) {
       await updateProfile(user, { photoURL: userData.photoURL });
     }
-    
+
     if (userData.email && userData.email !== user.email) {
       await updateEmail(user, userData.email);
     }
@@ -239,11 +245,11 @@ export const updateUserProfile = async (
 export const updateUserPassword = async (newPassword: string): Promise<void> => {
   try {
     const user = auth.currentUser;
-    
+
     if (!user) {
       throw new Error('User not authenticated');
     }
-    
+
     await updatePassword(user, newPassword);
   } catch (error) {
     console.error('Error updating password: ', error);
@@ -265,12 +271,12 @@ export const resetPassword = async (email: string): Promise<void> => {
 export const isUserAdmin = async (userId: string): Promise<boolean> => {
   try {
     const userDoc = await getDoc(doc(db, USERS_COLLECTION, userId));
-    
+
     if (userDoc.exists()) {
       const userData = userDoc.data();
       return userData.isAdmin === true;
     }
-    
+
     return false;
   } catch (error) {
     console.error('Error checking admin status: ', error);

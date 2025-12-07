@@ -21,6 +21,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 import Account from "./pages/Account";
 import Delivery from "./pages/Delivery";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -75,6 +76,7 @@ const router = (
       <Route path="/custom-bouquet" element={<CustomBouquet />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/delivery" element={<Delivery />} />
       <Route path="/account" element={
         <ProtectedRoute>
