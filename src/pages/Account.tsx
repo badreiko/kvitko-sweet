@@ -370,15 +370,18 @@ export default function Account() {
                               </div>
                               <div>
                                 <span className={`px-2 py-1 rounded-full text-xs ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                  order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                                    order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-gray-100 text-gray-800'
+                                    order.status === 'ready' ? 'bg-purple-100 text-purple-800' :
+                                      order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                        order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                          order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                            'bg-gray-100 text-gray-800'
                                   }`}>
-                                  {order.status === 'delivered' ? 'Doručeno' :
-                                    order.status === 'shipped' ? 'Odesláno' :
-                                      order.status === 'processing' ? 'Zpracovává se' :
-                                        order.status === 'pending' ? 'Čeká na platbu' :
-                                          'Zrušeno'}
+                                  {order.status === 'delivered' ? (order.delivery?.type === 'pickup' ? 'Vyzvednuto' : 'Doručeno') :
+                                    order.status === 'ready' ? 'Připraveno k vyzvednutí' :
+                                      order.status === 'shipped' ? 'Odesláno' :
+                                        order.status === 'processing' ? 'Zpracovává se' :
+                                          order.status === 'pending' ? 'Čeká na zpracování' :
+                                            order.status === 'cancelled' ? 'Zrušeno' : order.status}
                                 </span>
                               </div>
                             </div>
@@ -391,6 +394,45 @@ export default function Account() {
                                 </div>
                               ))}
                             </div>
+
+                            {/* Delivery/Pickup info */}
+                            {order.delivery && (
+                              <div className="bg-muted/50 p-3 rounded-lg mb-4">
+                                {order.delivery.type === 'pickup' ? (
+                                  <>
+                                    <p className="text-sm font-medium text-muted-foreground mb-1">🏪 Osobní odběr</p>
+                                    <p className="text-sm">{order.delivery.zoneName}</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="text-sm font-medium text-muted-foreground mb-1">🚚 Doručení</p>
+                                    <p className="text-sm">{order.delivery.zoneName}</p>
+                                    {order.shippingAddress && (
+                                      <p className="text-sm text-muted-foreground">
+                                        {order.shippingAddress.street}, {order.shippingAddress.city} {order.shippingAddress.postalCode}
+                                      </p>
+                                    )}
+                                  </>
+                                )}
+                                {order.delivery.price > 0 && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Cena doručení: {order.delivery.price} Kč
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Payment info */}
+                            {order.payment && (
+                              <div className="text-sm text-muted-foreground mb-4">
+                                💳 Platba: {order.payment.methodName}
+                                {order.paymentStatus && (
+                                  <span className={`ml-2 ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-yellow-600'}`}>
+                                    ({order.paymentStatus === 'paid' ? 'Zaplaceno' : 'Čeká na platbu'})
+                                  </span>
+                                )}
+                              </div>
+                            )}
 
                             <Separator className="my-4" />
 
