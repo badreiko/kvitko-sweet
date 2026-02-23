@@ -1,0 +1,26 @@
+
+> kvitko-sweet@0.1.0 build
+> tsc --skipLibCheck && vite build && node copy-redirects.js
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[32mтЬУ[39m 4 modules transformed.
+
+тЬЕ _redirects file copied to dist folder
+x Build failed in 1.42s
+error during build:
+[vite:css] [postcss] C:/Users/badre/CascadeProjects/kvitko-sweet/src/index.css:88:3: You cannot `@apply` the `font-serif` utility here because it creates a circular dependency.
+file: C:/Users/badre/CascadeProjects/kvitko-sweet/src/index.css:88:2
+    at Input.error (C:\Users\badre\CascadeProjects\kvitko-sweet\node_modules\postcss\lib\input.js:113:16)
+    at Rule.error (C:\Users\badre\CascadeProjects\kvitko-sweet\node_modules\postcss\lib\node.js:149:32)
+    at processApply (C:\Users\badre\CascadeProjects\kvitko-sweet\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:443:32)
+    at C:\Users\badre\CascadeProjects\kvitko-sweet\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+    at C:\Users\badre\CascadeProjects\kvitko-sweet\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+    at async plugins (C:\Users\badre\CascadeProjects\kvitko-sweet\node_modules\tailwindcss\lib\plugin.js:38:17)
+    at async LazyResult.runAsync (C:\Users\badre\CascadeProjects\kvitko-sweet\node_modules\postcss\lib\lazy-result.js:293:11)
+    at async compileCSS (file:///C:/Users/badre/CascadeProjects/kvitko-sweet/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+    at async Object.transform (file:///C:/Users/badre/CascadeProjects/kvitko-sweet/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+    at async transform (file:///C:/Users/badre/CascadeProjects/kvitko-sweet/node_modules/rollup/dist/es/shared/node-entry.js:20928:16)

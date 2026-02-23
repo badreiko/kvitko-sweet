@@ -8,6 +8,7 @@ import {
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { BlogProvider } from "./context/BlogContext";
+import SmoothScroll from "./components/SmoothScroll";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
 import Catalog from "@/pages/Catalog";
@@ -112,16 +113,18 @@ const router = (
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CartProvider>
-          <BlogProvider>
-            <ErrorBoundary>
-              <Toaster position="top-right" />
-              {router}
-            </ErrorBoundary>
-          </BlogProvider>
-        </CartProvider>
-      </AuthProvider>
+      <SmoothScroll>
+        <AuthProvider>
+          <CartProvider>
+            <BlogProvider>
+              <ErrorBoundary>
+                <Toaster position="top-right" />
+                {router}
+              </ErrorBoundary>
+            </BlogProvider>
+          </CartProvider>
+        </AuthProvider>
+      </SmoothScroll>
     </QueryClientProvider>
   );
 }

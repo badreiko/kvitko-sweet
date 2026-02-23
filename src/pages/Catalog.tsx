@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/layout/Layout";
 import { ProductCard } from "@/components/ProductCard";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Импортируем функции для работы с Firebase
 import {
@@ -110,12 +111,11 @@ export default function Catalog() {
   // Update filters
   const updateFilters = (key: string, value: string) => {
     if (key === "category") {
-      // Для категорий обновляем путь URL
+      // При смене категории сбрасываем ценовой диапазон
+      setPriceRange([0, 2000]);
       if (value) {
-        // Переходим на /catalog/category-slug
         navigate(`/catalog/${value}`);
       } else {
-        // Переходим на общий каталог
         navigate('/catalog');
       }
     } else {
@@ -132,8 +132,7 @@ export default function Catalog() {
 
   // Clear all filters
   const clearFilters = () => {
-    // Переходим на общий каталог без фильтров
-    navigate('/catalog');
+    navigate('/catalog', { replace: true });
     setPriceRange([0, 2000]);
   };
 
@@ -159,15 +158,51 @@ export default function Catalog() {
     return 0;
   });
 
-  // Отображение индикатора загрузки, если данные еще загружаются
+  // Отображение премиального Skeleton UI, пока данные загружаются
   if (loading) {
     return (
       <Layout>
+        <section className="bg-muted py-12">
+          <div className="container-custom">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">Katalog produktů</h1>
+            <p className="text-muted-foreground max-w-2xl">
+              Prohlédněte si naši nabídku čerstvých květin, pokojových rostlin a dárkových předmětů.
+            </p>
+          </div>
+        </section>
+
         <section className="py-12">
-          <div className="container-custom text-center">
-            <div className="flex justify-center items-center py-32">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-              <span className="ml-3 text-lg">Загрузка...</span>
+          <div className="container-custom">
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Fake Filters Skeleton */}
+              <div className="hidden lg:block w-64 shrink-0">
+                <div className="space-y-8">
+                  <div className="h-6 w-24 bg-muted/50 animate-pulse rounded-md"></div>
+                  <div className="space-y-4">
+                    <div className="h-4 w-32 bg-muted/50 animate-pulse rounded-md"></div>
+                    {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-4 w-full bg-muted/30 animate-pulse rounded-md"></div>)}
+                  </div>
+                  <div className="space-y-4">
+                    <div className="h-4 w-24 bg-muted/50 animate-pulse rounded-md"></div>
+                    <div className="h-2 w-full bg-muted/30 animate-pulse rounded-md mt-4"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fake Products Grid Skeleton */}
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="border border-border/30 rounded-[24px] overflow-hidden bg-background/40 h-[480px] flex flex-col animate-pulse shadow-sm">
+                    <div className="h-[280px] bg-muted/40 w-full mb-4"></div>
+                    <div className="px-5 pb-5 flex flex-col flex-1 gap-3">
+                      <div className="h-6 w-3/4 bg-muted/50 rounded-md"></div>
+                      <div className="h-4 w-full bg-muted/30 rounded-md"></div>
+                      <div className="h-4 w-2/3 bg-muted/30 rounded-md"></div>
+                      <div className="mt-auto h-6 w-1/3 bg-muted/50 rounded-md"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -534,70 +569,114 @@ export default function Catalog() {
                 )}
               </div>
 
-              {/* Product Grid */}
-              {viewMode === "grid" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {sortedProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {sortedProducts.map((product) => (
-                    <Card key={product.id} className="overflow-hidden border-border card-hover">
-                      <div className="flex flex-col md:flex-row">
-                        <div className="md:w-1/3 relative">
-                          <img
-                            src={product.imageUrl}
-                            alt={product.name}
-                            className="w-full h-full object-cover aspect-square md:aspect-auto"
-                          />
-                          {product.featured && (
-                            <div className="absolute top-3 right-3">
-                              <Badge className="bg-primary text-primary-foreground">
-                                Oblíbené
-                              </Badge>
+              {/* Product Grid with AnimatePresence */}
+              <AnimatePresence mode="wait">
+                {viewMode === "grid" ? (
+                  <motion.div
+                    key="grid"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                  >
+                    {sortedProducts.map((product, index) => (
+                      <motion.div
+                        key={product.id}
+                        layout
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.5,
+                          ease: "easeOut",
+                          delay: index * 0.05
+                        }}
+                      >
+                        <ProductCard product={product} />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="list"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                    className="space-y-6"
+                  >
+                    {sortedProducts.map((product, index) => (
+                      <motion.div
+                        key={product.id}
+                        layout
+                        initial={{ opacity: 0, x: -30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{
+                          duration: 0.4,
+                          ease: "easeOut",
+                          delay: index * 0.05
+                        }}
+                      >
+                        <Card className="overflow-hidden border-border/40 bg-background/50 backdrop-blur-sm hover:bg-background/80 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 rounded-[24px] group">
+                          <div className="flex flex-col md:flex-row">
+                            <div className="md:w-1/3 relative overflow-hidden bg-muted/20">
+                              <img
+                                src={product.imageUrl}
+                                alt={product.name}
+                                className="w-full h-full object-cover aspect-square md:aspect-auto transition-transform duration-700 ease-out group-hover:scale-110"
+                              />
+                              {product.featured && (
+                                <div className="absolute top-4 right-4">
+                                  <Badge className="bg-white/90 text-primary hover:bg-white backdrop-blur-md shadow-sm border-none px-3 py-1">
+                                    Oblíbené
+                                  </Badge>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <CardContent className="p-6 md:w-2/3 flex flex-col">
-                          <h3 className="font-semibold text-xl mb-2">
-                            {product.name}
-                          </h3>
-                          <p className="text-muted-foreground mb-4">
-                            {product.description}
-                          </p>
-                          <div className="mt-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <p className="font-semibold text-lg">{product.price} Kč</p>
-                            <div className="flex gap-3">
-                              <Button variant="outline" asChild>
-                                <Link to={`/product/${product.slug || product.id}`}>
-                                  Detail
-                                </Link>
-                              </Button>
-                              <Button>
-                                Do košíku
-                              </Button>
-                            </div>
+                            <CardContent className="p-6 md:w-2/3 flex flex-col relative bg-gradient-to-l from-transparent to-black/[0.01]">
+                              <h3 className="font-serif font-bold text-2xl mb-2 group-hover:text-primary transition-colors">
+                                {product.name}
+                              </h3>
+                              <p className="text-muted-foreground mb-6 line-clamp-3">
+                                {product.description}
+                              </p>
+                              <div className="mt-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-border/40 pt-4">
+                                <p className="font-semibold text-xl">{product.price} Kč</p>
+                                <div className="flex gap-3">
+                                  <Button variant="outline" className="rounded-full px-6 border-primary/20 hover:bg-primary/5 hover:text-primary transition-colors" asChild>
+                                    <Link to={`/product/${product.slug || product.id}`}>
+                                      Detail
+                                    </Link>
+                                  </Button>
+                                  <Button className="rounded-full px-8 shadow-lg shadow-primary/20 transition-transform hover:scale-105" onClick={() => {
+                                    /* Added minimal layout structure mapping to keep simplicity */
+                                  }}>
+                                    Do košíku
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
                           </div>
-                        </CardContent>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Empty State */}
               {sortedProducts.length === 0 && (
-                <div className="text-center py-12">
-                  <h3 className="text-lg font-semibold mb-2">Žádné produkty nenalezeny</h3>
-                  <p className="text-muted-foreground mb-6">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-20 bg-muted/20 rounded-[32px] border border-border/40 backdrop-blur-sm"
+                >
+                  <h3 className="text-2xl font-serif font-bold mb-3">Žádné produkty nenalezeny</h3>
+                  <p className="text-muted-foreground mb-8">
                     Zkuste upravit filtry nebo vyhledat jiné produkty.
                   </p>
-                  <Button onClick={clearFilters}>
+                  <Button size="lg" className="rounded-full" onClick={clearFilters}>
                     Vymazat filtry
                   </Button>
-                </div>
+                </motion.div>
               )}
             </div>
           </div>

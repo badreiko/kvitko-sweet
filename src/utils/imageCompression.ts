@@ -16,7 +16,7 @@ export interface CompressionOptions {
     /** Callback для отслеживания прогресса сжатия (0-100) */
     onProgress?: (progress: number) => void;
     /** Конвертировать в определенный формат */
-    fileType?: 'image/jpeg' | 'image/png' | 'image/webp';
+    fileType?: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif';
     /** Сохранить EXIF данные (по умолчанию false) */
     preserveExif?: boolean;
 }
@@ -221,6 +221,7 @@ export function isSupportedImageFormat(file: File): boolean {
         'image/jpeg',
         'image/png',
         'image/webp',
+        'image/avif',
         'image/bmp',
         'image/gif',
     ];

@@ -23,8 +23,9 @@ const Footer = () => {
   }, []);
 
   return (
-    <footer className="bg-muted pt-12 pb-6">
-      <div className="container-custom">
+    <footer className="bg-muted/50 border-t border-border/50 pt-16 pb-6 relative overflow-hidden">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      <div className="container-custom relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* About */}
           <div>
@@ -33,27 +34,25 @@ const Footer = () => {
               Květinové studio s ukrajinským nádechem. Nabízíme čerstvé květiny,
               originální kytice a dekorace pro každou příležitost.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-3 mt-2">
               {settings.facebookUrl && (
-                <Button variant="ghost" size="icon" asChild>
-                  <a href={settings.facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-                    <Facebook className="h-5 w-5" />
-                  </a>
-                </Button>
+                <a href={settings.facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook"
+                  className="w-10 h-10 rounded-full border border-border/50 bg-background flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-200">
+                  <Facebook className="h-4 w-4" />
+                </a>
               )}
               {settings.instagramUrl && (
-                <Button variant="ghost" size="icon" asChild>
-                  <a href={settings.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                    <Instagram className="h-5 w-5" />
-                  </a>
-                </Button>
+                <a href={settings.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram"
+                  className="w-10 h-10 rounded-full border border-border/50 bg-background flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-all duration-200">
+                  <Instagram className="h-4 w-4" />
+                </a>
               )}
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Rychlé odkazy</h3>
+            <h3 className="text-lg font-serif font-bold mb-5">Rychlé odkazy</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/catalog" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -90,7 +89,7 @@ const Footer = () => {
 
           {/* Contact */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Kontakt</h3>
+            <h3 className="text-lg font-serif font-bold mb-5">Kontakt</h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
@@ -121,13 +120,13 @@ const Footer = () => {
 
           {/* Newsletter */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Odběr novinek</h3>
-            <p className="text-muted-foreground mb-4">
+            <h3 className="text-lg font-serif font-bold mb-5">Odběr novinek</h3>
+            <p className="text-muted-foreground mb-4 leading-relaxed">
               Přihlaste se k odběru novinek a získejte 10% slevu na první nákup.
             </p>
             <div className="flex gap-2">
-              <Input placeholder="Váš e-mail" type="email" />
-              <Button>Odebírat</Button>
+              <Input placeholder="Váš e-mail" type="email" className="rounded-xl border-border/50 bg-background focus-visible:ring-primary/20" />
+              <Button className="rounded-full shrink-0 px-4">Odebírat</Button>
             </div>
           </div>
         </div>

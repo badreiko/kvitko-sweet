@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ChevronRight,
@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { getProductById, getProductBySlug, getFeaturedProducts } from "@/firebase/services/productService";
 import { getCategoryById } from "@/firebase/services/categoryService";
 import { Product } from "@/firebase/services/productService";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +33,12 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
 
+  // Premium Features States
+  const [showLens, setShowLens] = useState(false);
+  const [lensPos, setLensPos] = useState({ x: 0, y: 0, bgX: 0, bgY: 0 });
+  const [isAdded, setIsAdded] = useState(false);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+
   // Načtení produktu
   useEffect(() => {
     const loadProduct = async () => {
@@ -39,10 +46,8 @@ export default function ProductDetail() {
 
       setLoading(true);
       try {
-        // Zkusíme najít produkt podle slugu
         let productData = await getProductBySlug(id);
 
-        // Pokud se nepodařilo najít podle slugu, zkusíme podle ID (pro zpětnou kompatibilitu)
         if (!productData) {
           productData = await getProductById(id);
         }
@@ -50,14 +55,12 @@ export default function ProductDetail() {
         if (productData) {
           setProduct(productData);
 
-          // Načtení názvu kategorie
           if (productData.category) {
             try {
               const category = await getCategoryById(productData.category);
               if (category) {
                 setCategoryName(category.name);
               } else {
-                // Fallback pro statické kategorie
                 const categoryMap: Record<string, string> = {
                   'bouquets': 'Kytice',
                   'plants': 'Pokojové rostliny',
@@ -72,7 +75,6 @@ export default function ProductDetail() {
             }
           }
 
-          // Načítáme podobné produkty
           const featured = await getFeaturedProducts();
           const filtered = featured.filter(item => item.id !== id);
           setRelatedProducts(filtered.slice(0, 4));
@@ -88,9 +90,8 @@ export default function ProductDetail() {
     loadProduct();
   }, [id]);
 
-  // Přidání do košíku
-  const handleAddToCart = () => {
-    if (!product) return;
+  const handleAddToCartMorph = () => {
+    if (!product || isAdded) return;
 
     try {
       for (let i = 0; i < quantity; i++) {
@@ -102,11 +103,29 @@ export default function ProductDetail() {
         });
       }
 
+      setIsAdded(true);
       toast.success(`${product.name} přidán do košíku`);
+
+      setTimeout(() => {
+        setIsAdded(false);
+      }, 3000);
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast.error("Nepodařilo se přidat produkt do košíku");
     }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+
+    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
+    const x = e.clientX - left;
+    const y = e.clientY - top;
+
+    const bgX = (x / width) * 100;
+    const bgY = (y / height) * 100;
+
+    setLensPos({ x, y, bgX, bgY });
   };
 
   if (loading) {
@@ -137,9 +156,18 @@ export default function ProductDetail() {
 
   return (
     <Layout>
-      <div className="container-custom py-8">
+      <div className="container-custom pt-8 pb-24 md:pb-8 relative">
+        {/* Premium Background Flairs */}
+        <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none" />
+        <div className="absolute top-40 -left-64 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
+        <div className="absolute top-80 -right-64 w-[500px] h-[500px] bg-secondary/20 rounded-full blur-[120px] -z-10 pointer-events-none" />
+
         {/* Drobečková navigace */}
-        <div className="flex items-center text-sm text-muted-foreground mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center text-sm text-muted-foreground mb-8"
+        >
           <Link to="/" className="hover:text-foreground transition-colors">Domů</Link>
           <ChevronRight className="h-4 w-4 mx-2" />
           <Link to="/catalog" className="hover:text-foreground transition-colors">Katalog</Link>
@@ -149,39 +177,77 @@ export default function ProductDetail() {
           </Link>
           <ChevronRight className="h-4 w-4 mx-2" />
           <span>{product.name}</span>
-        </div>
+        </motion.div>
 
         {/* Detaily produktu */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-          {/* Obrázek produktu */}
-          <div className="relative">
-            <div className="aspect-square overflow-hidden rounded-lg">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mb-24 items-start">
+
+          {/* Obrázek produktu - Sticky Gallery */}
+          <div className="lg:col-span-6 lg:sticky lg:top-32 relative group">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              ref={imageContainerRef}
+              className={`aspect-square overflow-hidden rounded-[32px] shadow-2xl relative ${showLens ? 'cursor-crosshair' : 'cursor-auto'}`}
+              onMouseMove={handleMouseMove}
+              onMouseEnter={() => setShowLens(true)}
+              onMouseLeave={() => setShowLens(false)}
+            >
               <img
                 src={product.imageUrl}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
-            </div>
+
+              {/* Premium Lens Zoom */}
+              <AnimatePresence>
+                {showLens && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute pointer-events-none border-3 border-white rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.3)] z-50 overflow-hidden"
+                    style={{
+                      width: 160,
+                      height: 160,
+                      left: lensPos.x - 80,
+                      top: lensPos.y - 80,
+                      backgroundImage: `url(${product.imageUrl})`,
+                      backgroundPosition: `${lensPos.bgX}% ${lensPos.bgY}%`,
+                      backgroundSize: '500%',
+                      backgroundRepeat: 'no-repeat',
+                    }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {product.featured && (
-              <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground">
+              <Badge className="absolute top-6 left-6 bg-white/90 text-primary backdrop-blur-md px-4 py-1.5 shadow-xl border-none text-sm z-10">
                 Oblíbené
               </Badge>
             )}
 
-            {/* Rychlé akce */}
-            <div className="absolute top-4 right-4 flex flex-col gap-2">
-              <Button variant="secondary" size="icon" className="rounded-full">
+            {/* Rychlé akce (Glassmorphic) */}
+            <div className="absolute top-6 right-6 flex flex-col gap-3 z-10">
+              <Button variant="secondary" size="icon" className="rounded-full h-12 w-12 bg-white/70 backdrop-blur-md shadow-lg hover:bg-white hover:text-primary transition-all hover:scale-110">
                 <Heart className="h-5 w-5" />
               </Button>
-              <Button variant="secondary" size="icon" className="rounded-full">
+              <Button variant="secondary" size="icon" className="rounded-full h-12 w-12 bg-white/70 backdrop-blur-md shadow-lg hover:bg-white hover:text-primary transition-all hover:scale-110">
                 <Share className="h-5 w-5" />
               </Button>
             </div>
           </div>
 
           {/* Informace o produktu */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="lg:col-span-6 flex flex-col pt-4"
+          >
             <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
 
             <div className="flex items-center gap-2 mb-4">
@@ -189,8 +255,7 @@ export default function ProductDetail() {
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className={`h-5 w-5 ${star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                      }`}
+                    className={`h-5 w-5 ${star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
                   />
                 ))}
               </div>
@@ -211,31 +276,60 @@ export default function ProductDetail() {
               <span className="text-green-600 font-medium">Skladem</span>
             </div>
 
-            {/* Přidat do košíku */}
-            <div className="flex items-center gap-4 mb-8">
-              <div className="flex items-center border border-input rounded-md">
+            {/* Přidat do košíku - Morphing Button */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8">
+              <div className="flex items-center h-14 border border-input rounded-full bg-background/50 backdrop-blur-sm self-start sm:self-auto">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="rounded-none"
+                  className="rounded-l-full h-full w-12 hover:bg-muted/50"
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
-                <span className="w-10 text-center">{quantity}</span>
+                <span className="w-12 text-center font-semibold text-lg">{quantity}</span>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setQuantity(quantity + 1)}
-                  className="rounded-none"
+                  className="rounded-r-full h-full w-12 hover:bg-muted/50"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
 
-              <Button className="flex-1" onClick={handleAddToCart}>
-                <ShoppingBag className="mr-2 h-5 w-5" />
-                Přidat do košíku
+              <Button
+                className={`flex-1 h-14 rounded-full text-lg shadow-xl outline-none border-none transition-all duration-500 overflow-hidden relative ${isAdded
+                  ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/30'
+                  : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/30 hover:scale-105'
+                  }`}
+                onClick={handleAddToCartMorph}
+              >
+                <AnimatePresence mode="wait">
+                  {isAdded ? (
+                    <motion.div
+                      key="added"
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -20, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="flex items-center justify-center font-medium"
+                    >
+                      <Check className="mr-2 h-6 w-6" strokeWidth={3} /> V košíku
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="add"
+                      initial={{ y: -20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: 20, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="flex items-center justify-center font-medium"
+                    >
+                      <ShoppingBag className="mr-2 h-5 w-5" /> Přidat do košíku
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </Button>
             </div>
 
@@ -264,7 +358,7 @@ export default function ProductDetail() {
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
 
         {/* Záložky */}
@@ -354,8 +448,7 @@ export default function ProductDetail() {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`h-4 w-4 ${star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                            }`}
+                          className={`h-4 w-4 ${star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
                         />
                       ))}
                     </div>
@@ -373,8 +466,7 @@ export default function ProductDetail() {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`h-4 w-4 ${star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                            }`}
+                          className={`h-4 w-4 ${star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
                         />
                       ))}
                     </div>
@@ -392,8 +484,7 @@ export default function ProductDetail() {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`h-4 w-4 ${star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                            }`}
+                          className={`h-4 w-4 ${star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
                         />
                       ))}
                     </div>
@@ -407,17 +498,54 @@ export default function ProductDetail() {
           </TabsContent>
         </Tabs>
 
-        {/* Související produkty */}
+        {/* Související produkty - Parallax Reveal */}
         {relatedProducts.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-semibold mb-6">Mohlo by se vám také líbit</h2>
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8 }}
+            className="pt-12"
+          >
+            <h2 className="text-4xl font-serif font-bold mb-12 text-center relative inline-block left-1/2 -translate-x-1/2">
+              Mohlo by se vám také líbit
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full"></div>
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
+              {relatedProducts.map((relProduct, index) => (
+                <motion.div
+                  key={relProduct.id}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ delay: index * 0.1, duration: 0.6, ease: "easeOut" }}
+                >
+                  <ProductCard product={relProduct} />
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
+      </div>
+
+      {/* Sticky Bottom Bar pro mobily */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 border-t border-border/40 bg-background/80 backdrop-blur-xl z-50 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] pb-safe">
+        <div className="flex items-center justify-between gap-6 max-w-md mx-auto">
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Celkem</span>
+            <span className="text-xl font-bold font-serif">{product.price * quantity} Kč</span>
+          </div>
+          <Button
+            className={`flex-1 h-12 rounded-full transition-all duration-300 font-medium ${isAdded ? 'bg-green-500 hover:bg-green-600 shadow-green-500/20' : 'shadow-primary/20'}`}
+            onClick={handleAddToCartMorph}
+          >
+            {isAdded ? (
+              <span className="flex items-center justify-center gap-2"><Check className="h-5 w-5" /> V košíku</span>
+            ) : (
+              <span className="flex items-center justify-center gap-2"><ShoppingBag className="h-4 w-4" /> Do košíku</span>
+            )}
+          </Button>
+        </div>
       </div>
     </Layout>
   );

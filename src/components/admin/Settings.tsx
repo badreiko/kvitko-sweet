@@ -379,9 +379,10 @@ const Settings: FC = () => {
                     <div className="mt-4 border rounded-md overflow-hidden aspect-video max-w-xl">
                       <iframe
                         src={settings.mapEmbedUrl}
+                        title="Google Maps Location"
                         width="100%"
                         height="100%"
-                        style={{ border: 0 }}
+                        className="border-0"
                         allowFullScreen
                         loading="lazy"
                         referrerPolicy="no-referrer-when-downgrade"
@@ -515,6 +516,7 @@ const Settings: FC = () => {
                       <input
                         type="file"
                         accept="image/*"
+                        title="Изображение для секции доставки"
                         ref={fileInputRefs.deliverySection}
                         className="hidden"
                         onChange={(e) => {
@@ -573,6 +575,7 @@ const Settings: FC = () => {
                       <input
                         type="file"
                         accept="image/*"
+                        title="Изображение для кастомного букета"
                         ref={fileInputRefs.customBouquet}
                         className="hidden"
                         onChange={(e) => {
@@ -631,6 +634,7 @@ const Settings: FC = () => {
                       <input
                         type="file"
                         accept="image/*"
+                        title="Изображение для Hero секции"
                         ref={fileInputRefs.heroSection}
                         className="hidden"
                         onChange={(e) => {

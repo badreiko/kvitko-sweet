@@ -100,7 +100,7 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'orderNumber' | 
   try {
     const orderNumber = await generateOrderNumber();
 
-    const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
+    await addDoc(collection(db, ORDERS_COLLECTION), {
       ...orderData,
       orderNumber,
       status: 'pending',

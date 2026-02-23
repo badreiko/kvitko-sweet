@@ -43,6 +43,8 @@ const Categories: FC = () => {
     name: "",
     slug: "",
     description: "",
+    imageUrl: "",
+    order: 0,
     isActive: true
   });
 
@@ -118,8 +120,9 @@ const Categories: FC = () => {
         name: newCategory.name,
         slug: newCategory.slug,
         description: newCategory.description || "",
+        imageUrl: newCategory.imageUrl || "",
+        order: newCategory.order ?? categories.length,
         isActive: newCategory.isActive === undefined ? true : newCategory.isActive,
-        order: categories.length
       };
 
       const categoryId = await addCategory(categoryData as Omit<Category, 'id'>);
@@ -132,6 +135,8 @@ const Categories: FC = () => {
         name: "",
         slug: "",
         description: "",
+        imageUrl: "",
+        order: 0,
         isActive: true
       });
 
@@ -152,6 +157,8 @@ const Categories: FC = () => {
       name: category.name,
       slug: category.slug,
       description: category.description,
+      imageUrl: category.imageUrl || "",
+      order: category.order ?? 0,
       isActive: category.isActive
     });
     setIsEditDialogOpen(true);
@@ -170,6 +177,8 @@ const Categories: FC = () => {
         name: newCategory.name,
         slug: newCategory.slug,
         description: newCategory.description || "",
+        imageUrl: newCategory.imageUrl || "",
+        order: newCategory.order ?? 0,
         isActive: newCategory.isActive === undefined ? true : newCategory.isActive
       };
 
@@ -259,6 +268,30 @@ const Categories: FC = () => {
                     onChange={handleInputChange}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imageUrl">URL изображения категории</Label>
+                  <Input
+                    id="imageUrl"
+                    name="imageUrl"
+                    placeholder="https://..."
+                    value={newCategory.imageUrl}
+                    onChange={handleInputChange}
+                  />
+                  {newCategory.imageUrl && (
+                    <img src={newCategory.imageUrl} alt="preview" className="w-full h-32 object-cover rounded-lg mt-1" />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="order">Порядок отображения</Label>
+                  <Input
+                    id="order"
+                    name="order"
+                    type="number"
+                    placeholder="0"
+                    value={newCategory.order ?? ""}
+                    onChange={(e) => setNewCategory(prev => ({ ...prev, order: Number(e.target.value) }))}
+                  />
+                </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="isActive">Активная категория</Label>
                   <Switch
@@ -315,9 +348,10 @@ const Categories: FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Фото</TableHead>
                     <TableHead>Название</TableHead>
                     <TableHead>Slug</TableHead>
-                    <TableHead>Описание</TableHead>
+                    <TableHead>Порядок</TableHead>
                     <TableHead>Статус</TableHead>
                     <TableHead className="text-right">Действия</TableHead>
                   </TableRow>
@@ -326,11 +360,16 @@ const Categories: FC = () => {
                   {filteredCategories.length > 0 ? (
                     filteredCategories.map((category) => (
                       <TableRow key={category.id}>
+                        <TableCell>
+                          {category.imageUrl ? (
+                            <img src={category.imageUrl} alt={category.name} className="w-12 h-12 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-xs">нет</div>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{category.name}</TableCell>
                         <TableCell>{category.slug}</TableCell>
-                        <TableCell className="max-w-[300px] truncate">
-                          {category.description || "-"}
-                        </TableCell>
+                        <TableCell>{category.order ?? "-"}</TableCell>
                         <TableCell>
                           {category.isActive ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -418,6 +457,30 @@ const Categories: FC = () => {
                   name="description"
                   value={newCategory.description}
                   onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-imageUrl">URL изображения категории</Label>
+                <Input
+                  id="edit-imageUrl"
+                  name="imageUrl"
+                  placeholder="https://..."
+                  value={newCategory.imageUrl}
+                  onChange={handleInputChange}
+                />
+                {newCategory.imageUrl && (
+                  <img src={newCategory.imageUrl} alt="preview" className="w-full h-32 object-cover rounded-lg mt-1" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-order">Порядок отображения</Label>
+                <Input
+                  id="edit-order"
+                  name="order"
+                  type="number"
+                  placeholder="0"
+                  value={newCategory.order ?? ""}
+                  onChange={(e) => setNewCategory(prev => ({ ...prev, order: Number(e.target.value) }))}
                 />
               </div>
               <div className="flex items-center justify-between">

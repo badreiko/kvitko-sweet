@@ -177,13 +177,9 @@ export const getFeaturedProducts = async (limitCount = 4): Promise<Product[]> =>
       ...doc.data()
     })) as Product[];
 
-    // Сортируем в JS и ограничиваем количество
+    // Перемешиваем рандомно и ограничиваем количество
     return products
-      .sort((a, b) => {
-        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-        return dateB.getTime() - dateA.getTime();
-      })
+      .sort(() => Math.random() - 0.5)
       .slice(0, limitCount);
   } catch (error) {
     console.error('Error getting featured products: ', error);

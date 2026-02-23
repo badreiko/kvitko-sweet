@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
@@ -14,24 +14,25 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle
 } from "@/components/ui/navigation-menu";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import Logo from "./Logo";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { CartDrawer } from "@/components/CartDrawer";
 
 const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const { getItemsCount } = useCart();
-  
+
   // Количество товаров в корзине
   const itemsCount = getItemsCount();
 
@@ -45,7 +46,7 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-background border-b border-border sticky top-0 z-40">
+    <header className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-40 transition-all duration-300">
       <div className="container-custom py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -56,72 +57,80 @@ const Header = () => {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuLink href="/" className={navigationMenuTriggerStyle()}>
-                    Domů
+                  <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link to="/">Domů</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
-                
+
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>Katalog</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                       <li>
-                        <NavigationMenuLink href="/catalog/bouquets" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Kytice</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Krásné kytice pro každou příležitost
-                          </p>
+                        <NavigationMenuLink asChild className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <Link to="/catalog/bouquets">
+                            <div className="text-sm font-medium leading-none">Kytice</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                              Krásné kytice pro každou příležitost
+                            </p>
+                          </Link>
                         </NavigationMenuLink>
                       </li>
                       <li>
-                        <NavigationMenuLink href="/catalog/wedding" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Svatební květiny</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Svatební kytice a dekorace
-                          </p>
+                        <NavigationMenuLink asChild className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <Link to="/catalog/wedding">
+                            <div className="text-sm font-medium leading-none">Svatební květiny</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                              Svatební kytice a dekorace
+                            </p>
+                          </Link>
                         </NavigationMenuLink>
                       </li>
                       <li>
-                        <NavigationMenuLink href="/catalog/plants" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Pokojové rostliny</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Zelené rostliny pro váš domov
-                          </p>
+                        <NavigationMenuLink asChild className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <Link to="/catalog/plants">
+                            <div className="text-sm font-medium leading-none">Pokojové rostliny</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                              Zelené rostliny pro váš domov
+                            </p>
+                          </Link>
                         </NavigationMenuLink>
                       </li>
                       <li>
-                        <NavigationMenuLink href="/catalog/gifts" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Dárky</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Dárkové předměty a doplňky
-                          </p>
+                        <NavigationMenuLink asChild className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <Link to="/catalog/gifts">
+                            <div className="text-sm font-medium leading-none">Dárky</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                              Dárkové předměty a doplňky
+                            </p>
+                          </Link>
                         </NavigationMenuLink>
                       </li>
                     </ul>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
-                
+
                 <NavigationMenuItem>
-                  <NavigationMenuLink href="/custom-bouquet" className={navigationMenuTriggerStyle()}>
-                    Vlastní kytice
+                  <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link to="/custom-bouquet">Vlastní kytice</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
-                
+
                 <NavigationMenuItem>
-                  <NavigationMenuLink href="/delivery" className={navigationMenuTriggerStyle()}>
-                    Doručení
+                  <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link to="/delivery">Doručení</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
-                
+
                 <NavigationMenuItem>
-                  <NavigationMenuLink href="/blog" className={navigationMenuTriggerStyle()}>
-                    Blog
+                  <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link to="/blog">Blog</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
-                
+
                 <NavigationMenuItem>
-                  <NavigationMenuLink href="/contact" className={navigationMenuTriggerStyle()}>
-                    Kontakt
+                  <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link to="/contact">Kontakt</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -130,15 +139,15 @@ const Header = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               aria-label="Hledat"
             >
               <Search className="h-5 w-5" />
             </Button>
-            
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -149,27 +158,27 @@ const Header = () => {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>
                     <div className="flex flex-col">
-                      <span>Мой аккаунт</span>
+                      <span>Můj účet</span>
                       <span className="text-xs text-muted-foreground">{user.email}</span>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/account">Личный кабинет</Link>
+                    <Link to="/account">Osobní profil</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/account?tab=orders">Мои заказы</Link>
+                    <Link to="/account?tab=orders">Moje objednávky</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/account?tab=bouquets">Мои букеты</Link>
+                    <Link to="/account?tab=bouquets">Moje kytice</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={handleLogout}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Выйти</span>
+                    <span>Odhlásit se</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -180,8 +189,8 @@ const Header = () => {
                 </Button>
               </Link>
             )}
-            
-            <Link to="/cart">
+
+            <CartDrawer>
               <Button variant="ghost" size="icon" className="relative" aria-label="Košík">
                 <ShoppingCart className="h-5 w-5" />
                 {itemsCount > 0 && (
@@ -190,8 +199,8 @@ const Header = () => {
                   </Badge>
                 )}
               </Button>
-            </Link>
-            
+            </CartDrawer>
+
             {/* Mobile Menu Trigger */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -203,15 +212,15 @@ const Header = () => {
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between mb-6">
                     <Logo showText={false} size="sm" />
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
-                  
+
                   {/* User info in mobile menu */}
                   {user && (
                     <div className="mb-6 p-4 bg-muted rounded-lg">
@@ -220,62 +229,62 @@ const Header = () => {
                           <User className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium">{user.displayName || 'Пользователь'}</p>
+                          <p className="font-medium">{user.displayName || 'Uživatel'}</p>
                           <p className="text-xs text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
                     </div>
                   )}
-                  
+
                   <nav className="flex flex-col gap-4">
-                    <Link 
-                      to="/" 
+                    <Link
+                      to="/"
                       className="text-lg font-medium py-2 border-b border-border"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Domů
                     </Link>
-                    <Link 
-                      to="/catalog" 
+                    <Link
+                      to="/catalog"
                       className="text-lg font-medium py-2 border-b border-border"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Katalog
                     </Link>
-                    <Link 
-                      to="/custom-bouquet" 
+                    <Link
+                      to="/custom-bouquet"
                       className="text-lg font-medium py-2 border-b border-border"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Vlastní kytice
                     </Link>
-                    <Link 
-                      to="/delivery" 
+                    <Link
+                      to="/delivery"
                       className="text-lg font-medium py-2 border-b border-border"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Doručení
                     </Link>
-                    <Link 
-                      to="/blog" 
+                    <Link
+                      to="/blog"
                       className="text-lg font-medium py-2 border-b border-border"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Blog
                     </Link>
-                    <Link 
-                      to="/contact" 
+                    <Link
+                      to="/contact"
                       className="text-lg font-medium py-2 border-b border-border"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Kontakt
                     </Link>
                   </nav>
-                  
+
                   <div className="mt-auto flex flex-col gap-4">
                     {user ? (
                       <>
-                        <Link 
+                        <Link
                           to="/account"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
@@ -284,8 +293,8 @@ const Header = () => {
                             Můj účet
                           </Button>
                         </Link>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           className="w-full"
                           onClick={() => {
                             handleLogout();
@@ -297,7 +306,7 @@ const Header = () => {
                         </Button>
                       </>
                     ) : (
-                      <Link 
+                      <Link
                         to="/login"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
@@ -307,38 +316,35 @@ const Header = () => {
                         </Button>
                       </Link>
                     )}
-                    <Link 
-                      to="/cart"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
+                    <CartDrawer>
                       <Button className="w-full">
                         <ShoppingCart className="mr-2 h-4 w-4" />
                         Košík
                         {itemsCount > 0 && (
-                          <Badge className="ml-2">{itemsCount}</Badge>
+                          <Badge className="ml-2 bg-secondary text-secondary-foreground hover:bg-secondary/80">{itemsCount}</Badge>
                         )}
                       </Button>
-                    </Link>
+                    </CartDrawer>
                   </div>
                 </div>
               </SheetContent>
             </Sheet>
           </div>
         </div>
-        
+
         {/* Search Bar */}
         {isSearchOpen && (
           <div className="mt-4 animate-fade-in">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Hledat produkty..." 
+              <Input
+                placeholder="Hledat produkty..."
                 className="pl-10"
                 autoFocus
               />
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="absolute right-1 top-1/2 transform -translate-y-1/2"
                 onClick={() => setIsSearchOpen(false)}
               >
