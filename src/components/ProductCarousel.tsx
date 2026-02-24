@@ -50,7 +50,7 @@ export function ProductCarousel({ products }: ProductCarouselProps) {
                 {products.map((product) => (
                     <motion.div
                         key={product.id}
-                        className="min-w-[280px] md:min-w-[320px] shrink-0"
+                        className="min-w-[80vw] sm:min-w-[280px] md:min-w-[320px] shrink-0"
                     >
                         <ProductCard product={product} />
                     </motion.div>

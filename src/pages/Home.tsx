@@ -9,6 +9,7 @@ import { TestimonialCard } from "@/components/TestimonialCard";
 import { FadeSlider } from "@/components/FadeSlider";
 import MagneticButton from "@/components/MagneticButton";
 import { ProductCarousel } from "@/components/ProductCarousel";
+import { ProductCard } from "@/components/ProductCard";
 import { InfiniteMarquee } from "@/components/InfiniteMarquee";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
@@ -141,36 +142,36 @@ export default function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section ref={heroRef} className="mesh-gradient overflow-hidden min-h-[90vh] flex items-center py-16 md:py-24">
+      <section ref={heroRef} className="mesh-gradient overflow-hidden min-h-[100svh] md:min-h-[90vh] flex items-center py-10 md:py-24">
         <div className="container-custom">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7 }}
-              className="space-y-6"
+              className="space-y-4 md:space-y-6 flex flex-col pt-0 md:pt-4"
             >
-              <Badge className="bg-secondary text-secondary-foreground px-3 py-1">
+              <Badge className="hidden md:inline-flex bg-secondary text-secondary-foreground px-3 py-1 w-fit">
                 Květinové studio
               </Badge>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mt-0">
                 Krásné <span className="text-primary">květiny</span> pro každou příležitost
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-base md:text-lg text-muted-foreground">
                 Vítejte v Kvitko Sweet, kde tvoříme originální kytice a květinové dekorace
                 s láskou a péčí. Nabízíme čerstvé květiny, doručení po celé Praze a okolí.
               </p>
-              <div className="flex flex-wrap gap-4">
-                <MagneticButton>
-                  <Button size="lg" className="rounded-full px-8 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all" asChild>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 md:pt-4">
+                <MagneticButton className="w-full sm:w-auto">
+                  <Button size="lg" className="rounded-full px-8 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all w-full sm:w-auto h-12 md:h-11" asChild>
                     <Link to="/catalog">
                       Prohlédnout katalog
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
                 </MagneticButton>
-                <MagneticButton>
-                  <Button size="lg" variant="outline" className="rounded-full px-8 border-border/50 hover:bg-muted/50 transition-all" asChild>
+                <MagneticButton className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="rounded-full px-8 border-border/50 hover:bg-muted/50 transition-all w-full sm:w-auto h-12 md:h-11" asChild>
                     <Link to="/custom-bouquet">
                       Vytvořit vlastní kytici
                     </Link>
@@ -189,9 +190,10 @@ export default function Home() {
               <motion.img
                 src={SpringBouquet}
                 alt="Květiny Kvitko Sweet"
-                className="rounded-xl shadow-2xl w-full h-auto object-cover aspect-[4/3] relative z-10"
+                className="rounded-xl shadow-2xl w-full h-[30vh] sm:h-auto object-cover aspect-video md:aspect-[4/3] relative z-10"
+                animate={{ y: [-10, 10, -10] }}
                 whileHover={{ scale: 1.05, rotateZ: 2 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
               />
             </motion.div>
           </div>
@@ -200,21 +202,78 @@ export default function Home() {
 
       {/* Bento Box Section (Features + Categories) */}
       {(categories.length > 0) && (
-        <section className="py-24 bg-muted/30">
+        <section className="py-12 md:py-24 bg-muted/30 min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
           <div className="container-custom">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
-              className="text-center mb-16"
+              className="text-center mb-10 md:mb-16"
             >
-              <h2 className="text-4xl md:text-5xl font-serif font-bold mb-4 text-foreground tracking-tight">Proč si vybrat nás</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold mb-3 md:mb-4 text-foreground tracking-tight">Proč si vybrat nás</h2>
+              <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4 md:px-0">
                 Kombinace prémiové kvality, uměleckého přístupu a dokonalého servisu.
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[280px]">
+            {/* MOBILE LAYOUT */}
+            <div className="md:hidden flex flex-col gap-8">
+              {/* 1. Mobile Categories Carousel */}
+              <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 px-4 -mx-4 scrollbar-hide">
+                {categories.slice(0, 3).map((category, idx) => (
+                  <Link
+                    key={idx}
+                    to={`/catalog/${category.slug}`}
+                    className="shrink-0 w-[80vw] h-[300px] snap-center rounded-3xl overflow-hidden relative group"
+                  >
+                    <img
+                      src={category.imageUrl || SpringBouquet}
+                      alt={category.name}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
+                      <h3 className="text-white text-2xl font-serif font-bold mb-2">{category.name}</h3>
+                      {idx === 0 && <p className="text-white/80 line-clamp-2 text-sm">{category.description}</p>}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* 2. Mobile Features Compact Grid */}
+              <div className="grid grid-cols-2 gap-4 px-4 -mx-4">
+                <div className="bg-background/80 backdrop-blur-xl border border-border/50 p-4 rounded-3xl shadow-sm flex flex-col justify-center items-center text-center">
+                  <div className="bg-primary/10 p-3 rounded-2xl w-fit mb-3">
+                    <Leaf className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-bold mb-1">Čerstvé květiny</h3>
+                  <p className="text-muted-foreground text-xs">Vždy nejvyšší kvalita</p>
+                </div>
+
+                <div className="bg-background/80 backdrop-blur-xl border border-border/50 p-4 rounded-3xl shadow-sm flex flex-col justify-center items-center text-center">
+                  <div className="bg-primary/10 p-3 rounded-2xl w-fit mb-3">
+                    <Heart className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-bold mb-1">Ruční výroba</h3>
+                  <p className="text-muted-foreground text-xs">S láskou od floristů</p>
+                </div>
+
+                <div className="col-span-2 bg-primary text-primary-foreground p-5 rounded-3xl shadow-lg flex items-center gap-4 relative overflow-hidden">
+                  <div className="absolute -right-10 -top-10 bg-white/10 w-32 h-32 rounded-full blur-2xl"></div>
+                  <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm shrink-0 shadow-inner">
+                    <Truck className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="relative z-10">
+                    <h3 className="text-lg font-bold mb-1 text-white">Expresní doručení</h3>
+                    <p className="text-primary-foreground/90 text-xs leading-relaxed">
+                      Doručujeme v den objednávky po celé Praze.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* DESKTOP BENTO BOX LAYOUT */}
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[280px]">
 
               {/* Плитка 1: Главная категория (Large) */}
               {categories[0] && (
@@ -338,7 +397,7 @@ export default function Home() {
       )}
 
       {/* Featured Products Section */}
-      <section className="py-16">
+      <section className="py-16 min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
         <div className="container-custom">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
@@ -374,17 +433,59 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <ProductCarousel products={featuredProducts} />
+              <>
+                <div className="hidden md:block">
+                  <ProductCarousel products={featuredProducts} />
+                </div>
+                <div className="md:hidden grid grid-cols-2 gap-4">
+                  {featuredProducts.slice(0, 4).map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+                <div className="md:hidden mt-6 text-center">
+                  <Button variant="outline" className="rounded-full px-8 w-full border-primary/20 hover:bg-primary/5" asChild>
+                    <Link to="/catalog">
+                      Zobrazit všechny produkty
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </>
             )}
           </motion.div>
         </div>
       </section>
 
-      {/* Custom Bouquet Section (Sticky Scroll) */}
-      <section className="py-24 bg-muted leaf-pattern overflow-visible relative">
+      {/* Custom Bouquet Section */}
+      <section className="py-16 md:py-24 bg-muted leaf-pattern overflow-visible relative min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
         <div className="container-custom">
 
-          <div className="flex flex-col lg:flex-row gap-16 relative items-start">
+          {/* MOBILE VIEW */}
+          <div className="md:hidden flex flex-col gap-8 text-center items-center">
+            <h2 className="text-3xl font-serif font-bold text-foreground tracking-tight">Vytvořte si vlastní <span className="text-primary italic">umělecké dílo</span></h2>
+
+            <div className="rounded-3xl overflow-hidden shadow-xl aspect-[4/5] w-full max-w-sm mx-auto relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 flex flex-col justify-end p-6">
+                <p className="text-white text-lg font-bold">Staňte se floristou</p>
+              </div>
+              <img src={sectionImages.customBouquet?.[0] || featuredProducts[0]?.imageUrl || SpringBouquet} alt="Kytice" className="w-full h-full object-cover" />
+            </div>
+
+            <p className="text-muted-foreground mr-0 px-2">
+              Navrhněte si kytici přesně podle vašich představ. Náš tým zkušených
+              floristů přetvoří vaši vizi do skutečné květinové symfonie.
+            </p>
+
+            <Button size="lg" className="h-14 px-8 text-lg rounded-full w-full shadow-xl shadow-primary/20" asChild>
+              <Link to="/custom-bouquet">
+                Zahájit tvorbu
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* DESKTOP VIEW (STICKY SCROLL) */}
+          <div className="hidden md:flex flex-col lg:flex-row gap-16 relative items-start">
 
             {/* Левая часть: Липкий контент */}
             <div className="lg:w-1/2 lg:sticky lg:top-32 h-fit space-y-8 animate-fade-in z-10 pb-8 lg:pb-0">
@@ -485,7 +586,7 @@ export default function Home() {
 
       {/* Testimonials Section - показываем только если есть отзывы */}
       {testimonials.length > 0 && (
-        <section className="py-20 bg-muted/30">
+        <section className="py-20 bg-muted/30 min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
           <div className="container-custom">
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-background border border-border/50 text-sm font-medium text-muted-foreground mb-5 shadow-sm">
@@ -518,124 +619,154 @@ export default function Home() {
       )}
 
       {/* Delivery Section (Premium Light Glass) */}
-      <section className="py-24 relative overflow-hidden">
+      <section className="py-16 md:py-24 relative overflow-hidden min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
         {/* Декоративные фоновые элементы */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[100px] -z-10 -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
 
         <div className="container-custom">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-10%" }}
-            transition={{ duration: 0.8 }}
-            className="bg-white/60 backdrop-blur-xl border border-white/80 shadow-2xl shadow-primary/5 rounded-[40px] p-8 md:p-12 lg:p-16 relative overflow-hidden group hover:shadow-primary/10 hover:-translate-y-2 transition-all duration-700"
-          >
-            {/* Внутренний блик для эффекта стекла */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white/20 to-transparent pointer-events-none rounded-[40px]"></div>
+          {/* MOBILE VIEW FOR DELIVERY */}
+          <div className="md:hidden">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-primary text-primary-foreground rounded-[32px] p-8 shadow-xl relative overflow-hidden text-center"
+            >
+              <div className="absolute -inset-4 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <Truck className="h-8 w-8 text-white" />
+              </div>
+              <h2 className="text-3xl font-serif font-bold mb-3 relative z-10">
+                Expresní doručení
+              </h2>
+              <p className="text-primary-foreground/90 mb-8 relative z-10 text-sm">
+                Po Praze od 90 minut. Bezpečná doprava klimatizovanými vozy zaručí perfektní stav vaší kytice.
+              </p>
+              <Button variant="secondary" size="lg" className="rounded-full w-full relative z-10" asChild>
+                <Link to="/delivery">
+                  Více o dopravě
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </motion.div>
+          </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10">
-              <div className="order-2 lg:order-1 relative">
-                <div className="absolute -inset-4 bg-primary/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                <div className="rounded-3xl overflow-hidden shadow-xl aspect-square md:aspect-[4/3] relative">
-                  <FadeSlider
-                    images={sectionImages.deliverySection || []}
-                    fallbackImage={featuredProducts[0]?.imageUrl || SpringBouquet}
-                    interval={5000}
-                    alt="Doručení květin"
-                    className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-1000 ease-out"
-                  />
+          {/* DESKTOP VIEW FOR DELIVERY */}
+          <div className="hidden md:block">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-10%" }}
+              transition={{ duration: 0.8 }}
+              className="bg-white/60 backdrop-blur-xl border border-white/80 shadow-2xl shadow-primary/5 rounded-[40px] p-8 md:p-12 lg:p-16 relative overflow-hidden group hover:shadow-primary/10 hover:-translate-y-2 transition-all duration-700"
+            >
+              {/* Внутренний блик для эффекта стекла */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white/20 to-transparent pointer-events-none rounded-[40px]"></div>
 
-                  {/* Бейдж поверх картинки */}
-                  <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md px-6 py-4 rounded-2xl shadow-lg border border-white/50 animate-bounce-slow">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-primary/10 p-3 rounded-full text-primary">
-                        <Truck className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground">Expresní</p>
-                        <p className="text-sm text-muted-foreground w-max">doručení po Praze</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10">
+                <div className="order-2 lg:order-1 relative">
+                  <div className="absolute -inset-4 bg-primary/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                  <div className="rounded-3xl overflow-hidden shadow-xl aspect-square md:aspect-[4/3] relative">
+                    <FadeSlider
+                      images={sectionImages.deliverySection || []}
+                      fallbackImage={featuredProducts[0]?.imageUrl || SpringBouquet}
+                      interval={5000}
+                      alt="Doručení květin"
+                      className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-1000 ease-out"
+                    />
+
+                    {/* Бейдж поверх картинки */}
+                    <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md px-6 py-4 rounded-2xl shadow-lg border border-white/50 animate-bounce-slow">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-primary/10 p-3 rounded-full text-primary">
+                          <Truck className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-foreground">Expresní</p>
+                          <p className="text-sm text-muted-foreground w-max">doručení po Praze</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="order-1 lg:order-2 space-y-8">
-                <div>
-                  <Badge className="bg-primary/10 text-primary border-none mb-6 px-4 py-1.5 text-sm">Naše služby</Badge>
-                  <h2 className="text-4xl md:text-5xl font-serif font-bold text-foreground tracking-tight mb-6">
-                    Doručení s <span className="text-primary italic">láskou</span>
-                  </h2>
-                  <p className="text-lg text-muted-foreground leading-relaxed">
-                    Každou kytici doručujeme osobně a s maximální péčí.
-                    Zaručujeme, že vaše květiny dorazí přesně na čas, v dokonalém stavu a plné svěžesti.
-                  </p>
-                </div>
+                <div className="order-1 lg:order-2 space-y-8">
+                  <div>
+                    <Badge className="bg-primary/10 text-primary border-none mb-6 px-4 py-1.5 text-sm">Naše služby</Badge>
+                    <h2 className="text-4xl md:text-5xl font-serif font-bold text-foreground tracking-tight mb-6">
+                      Doručení s <span className="text-primary italic">láskou</span>
+                    </h2>
+                    <p className="text-lg text-muted-foreground leading-relaxed">
+                      Každou kytici doručujeme osobně a s maximální péčí.
+                      Zaručujeme, že vaše květiny dorazí přesně na čas, v dokonalém stavu a plné svěžesti.
+                    </p>
+                  </div>
 
-                <div className="bg-white/50 rounded-3xl p-2 border border-black/5 shadow-inner">
-                  <Tabs defaultValue="prague" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 p-1 bg-transparent h-14">
-                      <TabsTrigger value="prague" className="rounded-2xl text-base font-medium data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">Praha</TabsTrigger>
-                      <TabsTrigger value="surroundings" className="rounded-2xl text-base font-medium data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">Okolí</TabsTrigger>
-                    </TabsList>
+                  <div className="bg-white/50 rounded-3xl p-2 border border-black/5 shadow-inner">
+                    <Tabs defaultValue="prague" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 p-1 bg-transparent h-14">
+                        <TabsTrigger value="prague" className="rounded-2xl text-base font-medium data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">Praha</TabsTrigger>
+                        <TabsTrigger value="surroundings" className="rounded-2xl text-base font-medium data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">Okolí</TabsTrigger>
+                      </TabsList>
 
-                    <div className="p-6">
-                      <TabsContent value="prague" className="mt-0 data-[state=active]:animate-in data-[state=active]:fade-in-50 data-[state=active]:slide-in-from-bottom-2 duration-500">
-                        <div className="space-y-5">
-                          {pragueZones.map((zone) => (<div key={zone.id} className="flex justify-between items-center group/item cursor-default">
-                            <span className="text-foreground/80 group-hover/item:text-primary transition-colors">{zone.name} <span className="text-muted-foreground text-sm ml-1">({zone.time})</span></span>
-                            <div className="flex-1 border-b border-dashed border-border/50 mx-4 group-hover/item:border-primary/30 transition-colors"></div>
-                            <span className="font-bold text-foreground">{zone.price} Kč</span>
-                          </div>
-                          ))}
-                          {pragueFreeThreshold < Infinity && (
-                            <div className="flex justify-between items-center pt-4 mt-2 border-t border-black/5">
-                              <span className="font-medium text-foreground">Objednávka nad {pragueFreeThreshold} Kč</span>
-                              <Badge className="bg-primary text-primary-foreground pointer-events-none">Zdarma</Badge>
+                      <div className="p-6">
+                        <TabsContent value="prague" className="mt-0 data-[state=active]:animate-in data-[state=active]:fade-in-50 data-[state=active]:slide-in-from-bottom-2 duration-500">
+                          <div className="space-y-5">
+                            {pragueZones.map((zone) => (<div key={zone.id} className="flex justify-between items-center group/item cursor-default">
+                              <span className="text-foreground/80 group-hover/item:text-primary transition-colors">{zone.name} <span className="text-muted-foreground text-sm ml-1">({zone.time})</span></span>
+                              <div className="flex-1 border-b border-dashed border-border/50 mx-4 group-hover/item:border-primary/30 transition-colors"></div>
+                              <span className="font-bold text-foreground">{zone.price} Kč</span>
                             </div>
-                          )}
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="surroundings" className="mt-0 data-[state=active]:animate-in data-[state=active]:fade-in-50 data-[state=active]:slide-in-from-bottom-2 duration-500">
-                        <div className="space-y-5">
-                          {surroundingZones.map((zone) => (<div key={zone.id} className="flex justify-between items-center group/item cursor-default">
-                            <span className="text-foreground/80 group-hover/item:text-primary transition-colors">{zone.name} <span className="text-muted-foreground text-sm ml-1">({zone.time})</span></span>
-                            <div className="flex-1 border-b border-dashed border-border/50 mx-4 group-hover/item:border-primary/30 transition-colors"></div>
-                            <span className="font-bold text-foreground">{zone.price} Kč</span>
+                            ))}
+                            {pragueFreeThreshold < Infinity && (
+                              <div className="flex justify-between items-center pt-4 mt-2 border-t border-black/5">
+                                <span className="font-medium text-foreground">Objednávka nad {pragueFreeThreshold} Kč</span>
+                                <Badge className="bg-primary text-primary-foreground pointer-events-none">Zdarma</Badge>
+                              </div>
+                            )}
                           </div>
-                          ))}
-                          {surroundingFreeThreshold < Infinity && (
-                            <div className="flex justify-between items-center pt-4 mt-2 border-t border-black/5">
-                              <span className="font-medium text-foreground">Objednávka nad {surroundingFreeThreshold} Kč</span>
-                              <Badge className="bg-primary text-primary-foreground pointer-events-none">Zdarma</Badge>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
-                    </div>
-                  </Tabs>
-                </div>
+                        </TabsContent>
 
-                <div className="pt-2">
-                  <MagneticButton>
-                    <Button variant="outline" size="lg" className="rounded-full px-8 h-12 bg-white/50 border-primary/20 hover:bg-white hover:text-primary hover:border-primary transition-all shadow-sm" asChild>
-                      <Link to="/delivery">
-                        Další informace o doručení
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </MagneticButton>
+                        <TabsContent value="surroundings" className="mt-0 data-[state=active]:animate-in data-[state=active]:fade-in-50 data-[state=active]:slide-in-from-bottom-2 duration-500">
+                          <div className="space-y-5">
+                            {surroundingZones.map((zone) => (<div key={zone.id} className="flex justify-between items-center group/item cursor-default">
+                              <span className="text-foreground/80 group-hover/item:text-primary transition-colors">{zone.name} <span className="text-muted-foreground text-sm ml-1">({zone.time})</span></span>
+                              <div className="flex-1 border-b border-dashed border-border/50 mx-4 group-hover/item:border-primary/30 transition-colors"></div>
+                              <span className="font-bold text-foreground">{zone.price} Kč</span>
+                            </div>
+                            ))}
+                            {surroundingFreeThreshold < Infinity && (
+                              <div className="flex justify-between items-center pt-4 mt-2 border-t border-black/5">
+                                <span className="font-medium text-foreground">Objednávka nad {surroundingFreeThreshold} Kč</span>
+                                <Badge className="bg-primary text-primary-foreground pointer-events-none">Zdarma</Badge>
+                              </div>
+                            )}
+                          </div>
+                        </TabsContent>
+                      </div>
+                    </Tabs>
+                  </div>
+
+                  <div className="pt-2">
+                    <MagneticButton>
+                      <Button variant="outline" size="lg" className="rounded-full px-8 h-12 bg-white/50 border-primary/20 hover:bg-white hover:text-primary hover:border-primary transition-all shadow-sm" asChild>
+                        <Link to="/delivery">
+                          Zobrazit všechny zóny
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </MagneticButton>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Blog Section (Editorial Magazine Layout) */}
-      <section className="py-24 bg-muted/30">
+      <section className="py-24 bg-muted/30 min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
         <div className="container-custom">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12">
             <div className="max-w-2xl">
@@ -755,7 +886,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section (Giant Scroll Typography & Interactive Hover) */}
-      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden py-24 bg-background">
+      <section className="relative min-h-[100svh] md:min-h-[80vh] flex items-center justify-center overflow-hidden py-24 bg-background">
         {/* Анимированный градиентный фон */}
         <div className="absolute inset-0 bg-primary/5">
           <div className="absolute top-1/4 left-1/4 w-[50vw] h-[50vw] bg-primary/10 rounded-full blur-[100px] animate-pulse"></div>

@@ -65,6 +65,28 @@ export default function Checkout() {
         note: ''
     });
 
+    // Populate user details when available
+    useEffect(() => {
+        if (user) {
+            setCustomerInfo(prev => {
+                const nameParts = (user.displayName || '').split(' ');
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+                return {
+                    ...prev,
+                    firstName: prev.firstName || firstName,
+                    lastName: prev.lastName || lastName,
+                    email: user.email || prev.email,
+                    phone: user.phoneNumber || prev.phone,
+                    street: user.address?.street || prev.street,
+                    city: user.address?.city || prev.city,
+                    postalCode: user.address?.postalCode || prev.postalCode,
+                };
+            });
+        }
+    }, [user]);
+
     // Delivery & Payment
     const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
     const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
