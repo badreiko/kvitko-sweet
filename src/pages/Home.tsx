@@ -142,7 +142,7 @@ export default function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section ref={heroRef} className="mesh-gradient overflow-hidden min-h-[100svh] md:min-h-[90vh] flex items-center py-10 md:py-24">
+      <section ref={heroRef} className="mesh-gradient overflow-hidden min-h-[70vh] md:min-h-[90vh] flex items-stretch md:items-center py-10 md:py-24">
         <div className="container-custom">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -202,7 +202,7 @@ export default function Home() {
 
       {/* Bento Box Section (Features + Categories) */}
       {(categories.length > 0) && (
-        <section className="py-12 md:py-24 bg-muted/30 min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
+        <section className="py-12 md:py-24 bg-muted/30">
           <div className="container-custom">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -397,7 +397,7 @@ export default function Home() {
       )}
 
       {/* Featured Products Section */}
-      <section className="py-16 min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
+      <section className="py-16">
         <div className="container-custom">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
@@ -457,7 +457,7 @@ export default function Home() {
       </section>
 
       {/* Custom Bouquet Section */}
-      <section className="py-16 md:py-24 bg-muted leaf-pattern overflow-visible relative min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
+      <section className="py-16 md:py-24 bg-muted leaf-pattern overflow-visible relative">
         <div className="container-custom">
 
           {/* MOBILE VIEW */}
@@ -586,7 +586,7 @@ export default function Home() {
 
       {/* Testimonials Section - показываем только если есть отзывы */}
       {testimonials.length > 0 && (
-        <section className="py-20 bg-muted/30 min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
+        <section className="py-20 bg-muted/30">
           <div className="container-custom">
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-background border border-border/50 text-sm font-medium text-muted-foreground mb-5 shadow-sm">
@@ -619,7 +619,7 @@ export default function Home() {
       )}
 
       {/* Delivery Section (Premium Light Glass) */}
-      <section className="py-16 md:py-24 relative overflow-hidden min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
+      <section className="py-16 md:py-24 relative overflow-hidden">
         {/* Декоративные фоновые элементы */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[100px] -z-10 -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
@@ -766,7 +766,7 @@ export default function Home() {
       </section>
 
       {/* Blog Section (Editorial Magazine Layout) */}
-      <section className="py-24 bg-muted/30 min-h-[100svh] md:min-h-0 flex flex-col justify-center md:block">
+      <section className="py-24 bg-muted/30">
         <div className="container-custom">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12">
             <div className="max-w-2xl">
@@ -886,7 +886,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section (Giant Scroll Typography & Interactive Hover) */}
-      <section className="relative min-h-[100svh] md:min-h-[80vh] flex items-center justify-center overflow-hidden py-24 bg-background">
+      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden py-24 bg-background">
         {/* Анимированный градиентный фон */}
         <div className="absolute inset-0 bg-primary/5">
           <div className="absolute top-1/4 left-1/4 w-[50vw] h-[50vw] bg-primary/10 rounded-full blur-[100px] animate-pulse"></div>
