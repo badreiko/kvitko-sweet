@@ -10,7 +10,17 @@ import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/layout/Layout";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { createCustomBouquet } from "@/firebase/services/orderService";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Импорт отдельных цветов
 import {
@@ -77,8 +87,11 @@ export default function CustomBouquet() {
   const [message, setMessage] = useState<string>("");
 
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [bouquetElements, setBouquetElements] = useState<FlowerForBouquet[]>([]);
   const [loadingElements, setLoadingElements] = useState(true);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [pendingBouquetDetails, setPendingBouquetDetails] = useState<any>(null);
 
   useEffect(() => {
     const fetchBouquetElements = async () => {
@@ -645,7 +658,7 @@ export default function CustomBouquet() {
                     className="w-full rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-base py-6 bg-primary text-primary-foreground group"
                     disabled={selectedFlowers.length === 0}
                     onClick={async () => {
-                      const bouquetId = Date.now().toString();
+                      let bouquetId = Date.now().toString();
 
                       const bouquetFlowers = selectedFlowers.map(s => {
                         const d = getItemDetails(s.id, ItemType.FLOWER);
@@ -663,35 +676,46 @@ export default function CustomBouquet() {
                         return { id: s.id, name: d?.name || '', price: d?.price || 0, quantity: s.quantity, imageUrl: d?.img || '', itemType: ItemType.ADDITION };
                       });
 
-                      const bouquet = {
-                        id: bouquetId,
-                        flowers: bouquetFlowers,
-                        wrapping: bouquetWrapping,
-                        additionalItems: bouquetAdditions,
-                        message: message,
-                        totalPrice: calculateTotal()
+                      const bouquetImageUrl = bouquetFlowers[0]?.imageUrl || '';
+                      const totalPrice = calculateTotal();
+
+                      const proceedAddToCart = async (shouldSaveToDb: boolean) => {
+                        try {
+                          // Create custom bouquet in DB if user wants to save it
+                          if (shouldSaveToDb && user) {
+                            const dbId = await createCustomBouquet({
+                              userId: user.id,
+                              flowers: bouquetFlowers.map(f => ({ id: f.id, name: f.name, quantity: f.quantity, price: f.price })),
+                              wrapping: bouquetWrapping ? { id: bouquetWrapping.id, name: bouquetWrapping.name, price: bouquetWrapping.price } : undefined,
+                              additionalItems: bouquetAdditions.map(a => ({ id: a.id, name: a.name, quantity: a.quantity, price: a.price })),
+                              message: message,
+                              totalPrice: totalPrice,
+                              status: 'submitted'
+                            });
+                            bouquetId = dbId;
+                          }
+
+                          await addToCart({
+                            id: bouquetId,
+                            name: 'Vlastní kytice',
+                            price: totalPrice,
+                            imageUrl: bouquetImageUrl
+                          });
+
+                          toast.success('Kytice uložena do košíku!', {
+                            description: `Celková cena: ${totalPrice} Kč`,
+                            icon: <Check className="w-4 h-4" />
+                          });
+                        } catch (error) {
+                          toast.error('Chyba při přidávání do košíku');
+                        }
                       };
 
-                      const bouquetImageUrl = bouquetFlowers[0]?.imageUrl || '';
-
-                      try {
-                        await addToCart({
-                          id: bouquet.id,
-                          name: 'Vlastní kytice',
-                          price: bouquet.totalPrice,
-                          imageUrl: bouquetImageUrl
-                        });
-
-                        toast.success('Kytice uložena do košíku!', {
-                          description: `Celková cena: ${bouquet.totalPrice} Kč`,
-                          icon: <Check className="w-4 h-4" />
-                        });
-
-                        // Opcionalni: reset form?
-                        // setStep(1); setSelectedFlowers([]); ...
-
-                      } catch (error) {
-                        toast.error('Chyba při přidávání do košíku');
+                      if (user) {
+                        setPendingBouquetDetails(() => proceedAddToCart);
+                        setIsSaveDialogOpen(true);
+                      } else {
+                        await proceedAddToCart(false);
                       }
                     }}
                   >
@@ -706,6 +730,39 @@ export default function CustomBouquet() {
           </div>
         </div>
       </section>
+
+      {/* Dialog pro uložení kytice do profilu */}
+      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Uložit kytici na profil?</DialogTitle>
+            <DialogDescription>
+              Přidáváte tuto kytici do košíku. Přejete si tuto vlastní kytici také uložit na svém profilu do záložky "Moje kytice" pro budoucí nákupy?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setIsSaveDialogOpen(false);
+                if (pendingBouquetDetails) await pendingBouquetDetails(false);
+                setPendingBouquetDetails(null);
+              }}
+            >
+              Ne, jen přidat do košíku
+            </Button>
+            <Button
+              onClick={async () => {
+                setIsSaveDialogOpen(false);
+                if (pendingBouquetDetails) await pendingBouquetDetails(true);
+                setPendingBouquetDetails(null);
+              }}
+            >
+              Ano, uložit a přidat do košíku
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

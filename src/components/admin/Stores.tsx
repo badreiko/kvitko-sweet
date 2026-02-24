@@ -40,17 +40,17 @@ const defaultOpeningHours: OpeningHours = {
     thursday: "09:00 - 18:00",
     friday: "09:00 - 18:00",
     saturday: "10:00 - 14:00",
-    sunday: "Zavřeno",
+    sunday: "Закрыто",
 };
 
 const dayLabels: Record<keyof OpeningHours, string> = {
-    monday: "Pondělí",
-    tuesday: "Úterý",
-    wednesday: "Středa",
-    thursday: "Čtvrtek",
-    friday: "Pátek",
-    saturday: "Sobota",
-    sunday: "Neděle",
+    monday: "Понедельник",
+    tuesday: "Вторник",
+    wednesday: "Среда",
+    thursday: "Четверг",
+    friday: "Пятница",
+    saturday: "Суббота",
+    sunday: "Воскресенье",
 };
 
 export default function Stores() {
@@ -84,10 +84,10 @@ export default function Stores() {
     const getFieldError = (field: string): string | null => {
         const value = formData[field as keyof typeof formData];
         if (requiredFields.includes(field as typeof requiredFields[number]) && (!value || String(value).trim() === '')) {
-            return 'Toto pole je povinné';
+            return 'Это поле обязательно';
         }
         if (field === 'email' && formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            return 'Neplatný formát e-mailu';
+            return 'Неверный формат e-mail';
         }
         return null;
     };
@@ -106,7 +106,7 @@ export default function Stores() {
             setStores(data);
         } catch (error) {
             console.error("Error fetching stores:", error);
-            toast.error("Chyba při načítání prodejen");
+            toast.error("Ошибка при загрузке магазинов");
         } finally {
             setLoading(false);
         }
@@ -182,7 +182,7 @@ export default function Stores() {
     const handleSubmit = async () => {
         setShowErrors(true);
         if (hasErrors) {
-            toast.error("Vyplňte všechna povinná pole");
+            toast.error("Заполните все обязательные поля");
             return;
         }
 
@@ -203,32 +203,32 @@ export default function Stores() {
 
             if (isEditing && currentStore?.id) {
                 await updateStore(currentStore.id, storeData);
-                toast.success("Prodejna byla úspěšně aktualizována");
+                toast.success("Магазин успешно обновлен");
             } else {
                 await addStore(storeData);
-                toast.success("Prodejna byla úspěšně přidána");
+                toast.success("Магазин успешно добавлен");
             }
 
             handleCloseDialog();
             fetchStores();
         } catch (error) {
             console.error("Error saving store:", error);
-            toast.error("Chyba při ukládání prodejny");
+            toast.error("Ошибка при сохранении магазина");
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Opravdu chcete smazat tuto prodejnu?")) return;
+        if (!confirm("Вы уверены, что хотите удалить этот магазин?")) return;
 
         try {
             await deleteStore(id);
-            toast.success("Prodejna byla smazána");
+            toast.success("Магазин был удален");
             fetchStores();
         } catch (error) {
             console.error("Error deleting store:", error);
-            toast.error("Chyba při mazání prodejny");
+            toast.error("Ошибка при удалении магазина");
         }
     };
 
@@ -237,14 +237,14 @@ export default function Stores() {
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold">Prodejny</h1>
+                        <h1 className="text-2xl font-bold">Магазины</h1>
                         <p className="text-muted-foreground">
-                            Správa prodejen pro osobní odběr
+                            Управление магазинами для самовывоза
                         </p>
                     </div>
                     <Button onClick={() => handleOpenDialog()}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Přidat prodejnu
+                        Добавить магазин
                     </Button>
                 </div>
 
@@ -252,7 +252,7 @@ export default function Stores() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <MapPin className="h-5 w-5" />
-                            Seznam prodejen
+                            Список магазинов
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -262,17 +262,17 @@ export default function Stores() {
                             </div>
                         ) : stores.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
-                                Zatím nemáte žádné prodejny.
+                                У вас пока нет магазинов.
                             </div>
                         ) : (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Název</TableHead>
-                                        <TableHead>Adresa</TableHead>
-                                        <TableHead>Telefon</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Akce</TableHead>
+                                        <TableHead>Название</TableHead>
+                                        <TableHead>Адрес</TableHead>
+                                        <TableHead>Телефон</TableHead>
+                                        <TableHead>Статус</TableHead>
+                                        <TableHead className="text-right">Действия</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -290,7 +290,7 @@ export default function Stores() {
                                                         : "bg-gray-100 text-gray-800"
                                                         }`}
                                                 >
-                                                    {store.isActive ? "Aktivní" : "Neaktivní"}
+                                                    {store.isActive ? "Активен" : "Неактивен"}
                                                 </span>
                                             </TableCell>
                                             <TableCell className="text-right">
@@ -323,7 +323,7 @@ export default function Stores() {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>
-                            {isEditing ? "Upravit prodejnu" : "Přidat prodejnu"}
+                            {isEditing ? "Редактировать магазин" : "Добавить магазин"}
                         </DialogTitle>
                     </DialogHeader>
 
@@ -332,7 +332,7 @@ export default function Stores() {
                         <div className="space-y-4">
                             <div>
                                 <Label htmlFor="name" className={(showErrors || touched.name) && getFieldError('name') ? 'text-destructive' : ''}>
-                                    Název prodejny *
+                                    Название магазина *
                                 </Label>
                                 <Input
                                     id="name"
@@ -340,7 +340,7 @@ export default function Stores() {
                                     value={formData.name}
                                     onChange={handleInputChange}
                                     onBlur={() => handleBlur('name')}
-                                    placeholder="Kvitko Sweet - Centrum"
+                                    placeholder="Kvitko Sweet - Центр"
                                     className={(showErrors || touched.name) && getFieldError('name') ? 'border-destructive' : ''}
                                 />
                                 {(showErrors || touched.name) && getFieldError('name') && (
@@ -351,7 +351,7 @@ export default function Stores() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="address" className={(showErrors || touched.address) && getFieldError('address') ? 'text-destructive' : ''}>
-                                        Adresa *
+                                        Адрес *
                                     </Label>
                                     <Input
                                         id="address"
@@ -368,7 +368,7 @@ export default function Stores() {
                                 </div>
                                 <div>
                                     <Label htmlFor="city" className={(showErrors || touched.city) && getFieldError('city') ? 'text-destructive' : ''}>
-                                        Město *
+                                        Город *
                                     </Label>
                                     <Input
                                         id="city"
@@ -376,7 +376,7 @@ export default function Stores() {
                                         value={formData.city}
                                         onChange={handleInputChange}
                                         onBlur={() => handleBlur('city')}
-                                        placeholder="Praha"
+                                        placeholder="Прага"
                                         className={(showErrors || touched.city) && getFieldError('city') ? 'border-destructive' : ''}
                                     />
                                     {(showErrors || touched.city) && getFieldError('city') && (
@@ -387,7 +387,7 @@ export default function Stores() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <Label htmlFor="postalCode">PSČ</Label>
+                                    <Label htmlFor="postalCode">Индекс</Label>
                                     <Input
                                         id="postalCode"
                                         name="postalCode"
@@ -435,13 +435,13 @@ export default function Stores() {
                             </div>
 
                             <div>
-                                <Label htmlFor="description">Popis</Label>
+                                <Label htmlFor="description">Описание</Label>
                                 <Textarea
                                     id="description"
                                     name="description"
                                     value={formData.description}
                                     onChange={handleInputChange}
-                                    placeholder="Krátký popis prodejny..."
+                                    placeholder="Краткое описание магазина..."
                                     rows={2}
                                 />
                             </div>
@@ -449,7 +449,7 @@ export default function Stores() {
 
                         {/* Opening Hours */}
                         <div className="space-y-3">
-                            <Label className="text-base font-semibold">Otevírací doba</Label>
+                            <Label className="text-base font-semibold">Часы работы</Label>
                             <div className="grid gap-2">
                                 {(Object.keys(dayLabels) as Array<keyof OpeningHours>).map((day) => (
                                     <div key={day} className="flex items-center gap-4">
@@ -468,9 +468,9 @@ export default function Stores() {
                         {/* Active Status */}
                         <div className="flex items-center justify-between">
                             <div>
-                                <Label>Aktivní prodejna</Label>
+                                <Label>Активный магазин</Label>
                                 <p className="text-sm text-muted-foreground">
-                                    Neaktivní prodejny se nezobrazí při výběru osobního odběru
+                                    Неактивные магазины не будут отображаться при выборе самовывоза
                                 </p>
                             </div>
                             <Switch
@@ -484,18 +484,18 @@ export default function Stores() {
 
                     <DialogFooter>
                         <Button variant="outline" onClick={handleCloseDialog}>
-                            Zrušit
+                            Отмена
                         </Button>
                         <Button onClick={handleSubmit} disabled={isSaving}>
                             {isSaving ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Ukládání...
+                                    Сохранение...
                                 </>
                             ) : isEditing ? (
-                                "Uložit změny"
+                                "Сохранить изменения"
                             ) : (
-                                "Přidat prodejnu"
+                                "Добавить магазин"
                             )}
                         </Button>
                     </DialogFooter>

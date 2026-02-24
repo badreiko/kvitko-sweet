@@ -71,7 +71,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { path: "/admin/users", label: "Пользователи", icon: Users },
     { path: "/admin/testimonials", label: "Отзывы", icon: MessageSquare },
     { path: "/admin/delivery-settings", label: "Доставка", icon: Truck },
-    { path: "/admin/stores", label: "Prodejny", icon: Flower },
+    { path: "/admin/stores", label: "Магазины", icon: Flower },
     { path: "/admin/blog", label: "Блог", icon: FileText },
     { path: "/admin/settings", label: "Настройки", icon: Settings },
   ];

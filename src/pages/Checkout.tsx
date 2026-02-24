@@ -29,7 +29,9 @@ import {
     Loader2,
     Store as StoreIcon,
     UserCircle,
-    Package
+    Package,
+    Banknote,
+    Landmark
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -43,6 +45,15 @@ interface CustomerInfo {
     postalCode: string;
     note: string;
 }
+
+const paymentIcons: Record<string, React.ElementType> = {
+    'credit-card': CreditCard,
+    'banknote': Banknote,
+    'landmark': Landmark,
+    // Fallbacks for older DB entries
+    'map-pin': Banknote,
+    'package-check': Landmark,
+};
 
 export default function Checkout() {
     const navigate = useNavigate();
@@ -629,7 +640,12 @@ export default function Checkout() {
                                                                 <div className={`h-5 w-5 rounded-full border flex-shrink-0 flex items-center justify-center mr-5 transition-colors ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground bg-transparent'}`}>
                                                                     {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
                                                                 </div>
-                                                                <div className="text-3xl mr-5 opacity-80">{method.icon}</div>
+                                                                <div className="mr-5 opacity-80 flex items-center justify-center text-primary">
+                                                                    {(() => {
+                                                                        const Icon = paymentIcons[method.icon] || CreditCard;
+                                                                        return <Icon className="h-8 w-8" />;
+                                                                    })()}
+                                                                </div>
                                                                 <div className="flex-1">
                                                                     <p className={`font-semibold text-lg ${isSelected ? 'text-primary' : 'text-foreground'}`}>{method.name}</p>
                                                                     <p className="text-sm text-muted-foreground">{method.description}</p>

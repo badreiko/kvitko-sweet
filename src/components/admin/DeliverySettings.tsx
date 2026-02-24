@@ -11,8 +11,8 @@ import {
     Calendar,
     Package,
     CreditCard,
-    MapPin,
-    PackageCheck,
+    Banknote,
+    Landmark,
     HelpCircle,
     Save,
     X,
@@ -83,8 +83,10 @@ const deliveryIcons: Record<string, React.ComponentType<{ className?: string }>>
 // Иконки для способов оплаты
 const paymentIcons: Record<string, React.ComponentType<{ className?: string }>> = {
     'credit-card': CreditCard,
-    'map-pin': MapPin,
-    'package-check': PackageCheck,
+    'banknote': Banknote,
+    'landmark': Landmark,
+    'map-pin': Banknote,
+    'package-check': Landmark,
 };
 
 export default function DeliverySettings() {
@@ -895,8 +897,8 @@ export default function DeliverySettings() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="credit-card">💳 Карта</SelectItem>
-                                        <SelectItem value="map-pin">📍 Наличные</SelectItem>
-                                        <SelectItem value="package-check">✅ Перевод</SelectItem>
+                                        <SelectItem value="banknote">💵 Наличные</SelectItem>
+                                        <SelectItem value="landmark">🏛 Перевод</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

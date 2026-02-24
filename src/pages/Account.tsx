@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  User, 
-  Package, 
-  Flower2, 
-  Settings, 
-  LogOut, 
-  Mail, 
-  Phone, 
-  MapPin, 
+import {
+  User,
+  Package,
+  Flower2,
+  Settings,
+  LogOut,
+  Mail,
+  Phone,
+  MapPin,
   ShoppingBag,
   CreditCard,
   Truck,
@@ -31,7 +32,9 @@ import Layout from "@/components/layout/Layout";
 import { getUserOrders, getUserCustomBouquets, Order, CustomBouquet } from "@/firebase/services/orderService";
 
 export default function Account() {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "profile";
+
   const [loading, setLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -162,9 +165,9 @@ export default function Account() {
       <section className="py-12 md:py-16">
         <div className="container-custom">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-            
+
             {/* Sidebar Navigation */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -178,9 +181,9 @@ export default function Account() {
                   <h2 className="font-serif font-bold text-xl">{user?.displayName || 'Uživatel'}</h2>
                   <p className="text-sm text-muted-foreground mt-1 truncate w-full px-2">{user?.email}</p>
                 </div>
-                
+
                 <Separator className="mb-6 opacity-50" />
-                
+
                 <nav className="space-y-1.5">
                   {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
@@ -188,12 +191,11 @@ export default function Account() {
                     return (
                       <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 ${
-                          isActive 
-                            ? "bg-primary/10 text-primary shadow-sm font-medium" 
+                        onClick={() => setSearchParams({ tab: tab.id })}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 ${isActive
+                            ? "bg-primary/10 text-primary shadow-sm font-medium"
                             : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <Icon className={`h-5 w-5 ${isActive ? "text-primary" : ""}`} />
@@ -203,9 +205,9 @@ export default function Account() {
                       </button>
                     );
                   })}
-                  
+
                   <Separator className="my-4 opacity-50" />
-                  
+
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 transition-colors duration-300"
@@ -218,7 +220,7 @@ export default function Account() {
             </motion.div>
 
             {/* Main Content Area */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -232,7 +234,7 @@ export default function Account() {
                   </div>
                 ) : (
                   <AnimatePresence mode="wait">
-                    
+
                     {/* PROFILE TAB */}
                     {activeTab === "profile" && (
                       <motion.div
@@ -245,7 +247,7 @@ export default function Account() {
                         <h2 className="text-2xl font-serif font-bold mb-8 flex items-center gap-2">
                           <User className="h-6 w-6 text-primary" /> Osobní údaje
                         </h2>
-                        
+
                         <form onSubmit={handleProfileUpdate} className="space-y-8">
                           <div className="space-y-6">
                             <h3 className="text-lg font-medium border-b pb-2">Základní informace</h3>
@@ -373,7 +375,7 @@ export default function Account() {
                             {orders.map(order => {
                               const statusConfig = getOrderStatusConfig(order.status);
                               const StatusIcon = statusConfig.icon;
-                              
+
                               return (
                                 <div key={order.id} className="border border-border/50 rounded-3xl overflow-hidden bg-background/40 hover:bg-background/80 transition-colors duration-300">
                                   {/* Order Header */}
@@ -504,15 +506,14 @@ export default function Account() {
                                       {new Date(bouquet.createdAt).toLocaleDateString('cs-CZ', { dateStyle: 'long' })}
                                     </p>
                                   </div>
-                                  <div className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                                    bouquet.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                    bouquet.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
-                                    bouquet.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
+                                  <div className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${bouquet.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                      bouquet.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
+                                        bouquet.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                          'bg-gray-100 text-gray-800'
+                                    }`}>
                                     {bouquet.status === 'confirmed' ? 'Potvrzeno' :
-                                     bouquet.status === 'submitted' ? 'Odesláno' :
-                                     bouquet.status === 'cancelled' ? 'Zrušeno' : 'Koncept'}
+                                      bouquet.status === 'submitted' ? 'Odesláno' :
+                                        bouquet.status === 'cancelled' ? 'Zrušeno' : 'Koncept'}
                                   </div>
                                 </div>
 

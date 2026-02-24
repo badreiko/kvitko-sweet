@@ -380,9 +380,9 @@ export const initializeDeliverySettings = async (): Promise<void> => {
 
         // Способы оплаты
         const paymentMethods = [
-            { name: 'Platební karta', description: 'Zaplaťte objednávku online platební kartou Visa, Mastercard, American Express.', icon: 'credit-card', order: 1, isActive: true },
-            { name: 'Hotově při doručení', description: 'Zaplaťte objednávku hotově kurýrovi při převzetí.', icon: 'map-pin', order: 2, isActive: true },
-            { name: 'Bankovní převod', description: 'Zaplaťte objednávku bankovním převodem. Objednávka bude zpracována po přijetí platby.', icon: 'package-check', order: 3, isActive: true },
+            { name: 'Kreditní karta (online)', description: 'Rychlá a bezpečná platba kartou online.', icon: 'credit-card', order: 1, isActive: true },
+            { name: 'Hotově při převzetí', description: 'Platba v hotovosti nebo kartou u kurýra.', icon: 'banknote', order: 2, isActive: true },
+            { name: 'Bankovní převod', description: 'Zaplaťte objednávku bankovním převodem. Objednávka bude zpracována po přijetí platby.', icon: 'landmark', order: 3, isActive: true },
         ];
 
         // FAQ
