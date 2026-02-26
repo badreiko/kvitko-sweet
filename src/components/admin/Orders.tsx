@@ -374,22 +374,63 @@ const Orders: FC = () => {
                 {selectedOrder.items?.length > 0 ? (
                   <div className="space-y-2">
                     {selectedOrder.items.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                        <div className="flex items-center gap-2">
-                          {item.imageUrl && (
-                            <img src={item.imageUrl} alt={item.name} className="w-10 h-10 rounded object-cover" />
-                          )}
-                          <div>
-                            <div className="font-medium">{item.name}</div>
-                            <div className="text-sm text-muted-foreground">x{item.quantity}</div>
+                      <div key={index} className="flex flex-col p-3 bg-muted rounded-lg border border-border/50 shadow-sm">
+                        <div className="flex items-center justify-between pointer-events-none">
+                          <div className="flex items-center gap-3">
+                            {item.imageUrl && (
+                              <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-md object-cover shadow-sm" />
+                            )}
+                            <div>
+                              <div className="font-semibold text-foreground">{item.name}</div>
+                              <div className="text-sm text-muted-foreground font-medium">Количество: {item.quantity} шт.</div>
+                            </div>
                           </div>
+                          <div className="font-bold text-lg">{formatPrice(item.price * item.quantity)}</div>
                         </div>
-                        <div className="font-medium">{formatPrice(item.price * item.quantity)}</div>
+                        {/* Custom Bouquet Details */}
+                        {item.isCustomBouquet && item.customBouquetData && (
+                          <div className="mt-3 pl-[3.75rem] space-y-2">
+                            {item.customBouquetData.flowers && item.customBouquetData.flowers.length > 0 && (
+                              <div>
+                                <span className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Цветы:</span>
+                                <ul className="list-disc list-inside text-sm text-foreground/90 ml-1">
+                                  {item.customBouquetData.flowers.map((f: any, i: number) => (
+                                    <li key={i}>{f.name} — {f.quantity} шт.</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {item.customBouquetData.wrapping && (
+                              <div>
+                                <span className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Упаковка:</span>
+                                <p className="text-sm text-foreground/90 ml-1">• {item.customBouquetData.wrapping.name}</p>
+                              </div>
+                            )}
+                            {item.customBouquetData.additionalItems && item.customBouquetData.additionalItems.length > 0 && (
+                              <div>
+                                <span className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Дополнения:</span>
+                                <ul className="list-disc list-inside text-sm text-foreground/90 ml-1">
+                                  {item.customBouquetData.additionalItems.map((a: any, i: number) => (
+                                    <li key={i}>{a.name} — {a.quantity} шт.</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {item.customBouquetData.message && (
+                              <div>
+                                <span className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Открытка:</span>
+                                <p className="text-sm italic text-foreground/90 ml-1 border-l-2 border-primary/30 pl-2 py-0.5 my-1">
+                                  "{item.customBouquetData.message}"
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Нет товаров</p>
+                  <p className="text-muted-foreground text-sm italic">Нет товаров</p>
                 )}
               </div>
 

@@ -699,7 +699,14 @@ export default function CustomBouquet() {
                             id: bouquetId,
                             name: 'Vlastní kytice',
                             price: totalPrice,
-                            imageUrl: bouquetImageUrl
+                            imageUrl: bouquetImageUrl,
+                            isCustomBouquet: true,
+                            customBouquetData: {
+                              flowers: bouquetFlowers.map(f => ({ id: f.id, name: f.name, quantity: f.quantity, price: f.price })),
+                              wrapping: bouquetWrapping ? { id: bouquetWrapping.id, name: bouquetWrapping.name, price: bouquetWrapping.price } : undefined,
+                              additionalItems: bouquetAdditions.map(a => ({ id: a.id, name: a.name, quantity: a.quantity, price: a.price })),
+                              message: message
+                            }
                           });
 
                           toast.success('Kytice uložena do košíku!', {

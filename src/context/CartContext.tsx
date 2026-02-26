@@ -23,6 +23,8 @@ export interface CartItem {
   price: number;
   quantity: number;
   imageUrl: string;
+  isCustomBouquet?: boolean;
+  customBouquetData?: any;
 }
 
 interface CartContextType {

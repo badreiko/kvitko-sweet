@@ -206,7 +206,9 @@ export default function Checkout() {
                     name: item.name,
                     price: item.price,
                     quantity: item.quantity,
-                    imageUrl: item.imageUrl
+                    imageUrl: item.imageUrl,
+                    isCustomBouquet: item.isCustomBouquet,
+                    customBouquetData: item.customBouquetData
                 })),
                 totalPrice: getFinalTotal(),
                 status: 'pending' as const,

@@ -21,6 +21,8 @@ export interface OrderItem {
   price: number;
   quantity: number;
   imageUrl?: string;
+  isCustomBouquet?: boolean;
+  customBouquetData?: any;
 }
 
 export interface Order {
