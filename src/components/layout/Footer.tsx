@@ -26,9 +26,9 @@ const Footer = () => {
     <footer className="bg-muted/50 border-t border-border/50 pt-16 pb-6 relative overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       <div className="container-custom relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* About */}
-          <div>
+          <div className="lg:col-span-1">
             <Logo className="mb-4" />
             <p className="text-muted-foreground mb-4">
               Květinové studio s ukrajinským nádechem. Nabízíme čerstvé květiny,
@@ -51,7 +51,7 @@ const Footer = () => {
           </div>
 
           {/* Quick Links */}
-          <div>
+          <div className="lg:col-span-1">
             <h3 className="text-lg font-serif font-bold mb-5">Rychlé odkazy</h3>
             <ul className="space-y-2">
               <li>
@@ -88,7 +88,7 @@ const Footer = () => {
           </div>
 
           {/* Contact */}
-          <div>
+          <div className="lg:col-span-1">
             <h3 className="text-lg font-serif font-bold mb-5">Kontakt</h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
@@ -118,8 +118,18 @@ const Footer = () => {
             </div>
           </div>
 
+          {/* Billing Info */}
+          <div className="lg:col-span-1">
+            <h3 className="text-lg font-serif font-bold mb-5">Fakturační údaje</h3>
+            <div className="space-y-2 text-muted-foreground text-sm">
+              {settings.companyIco && <p>IČO: {settings.companyIco}</p>}
+              {settings.companyDic && <p>DIČ: {settings.companyDic}</p>}
+              {settings.companyRegistry && <p className="leading-relaxed mt-2">{settings.companyRegistry}</p>}
+            </div>
+          </div>
+
           {/* Newsletter */}
-          <div>
+          <div className="lg:col-span-1">
             <h3 className="text-lg font-serif font-bold mb-5">Odběr novinek</h3>
             <p className="text-muted-foreground mb-4 leading-relaxed">
               Přihlaste se k odběru novinek a získejte 10% slevu na první nákup.

@@ -289,6 +289,40 @@ const Settings: FC = () => {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="companyIco">IČO</Label>
+                  <Input
+                    id="companyIco"
+                    name="companyIco"
+                    value={settings.companyIco || ""}
+                    onChange={handleChange}
+                    placeholder="např. 12345678"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="companyDic">DIČ (необязательно)</Label>
+                  <Input
+                    id="companyDic"
+                    name="companyDic"
+                    value={settings.companyDic || ""}
+                    onChange={handleChange}
+                    placeholder="např. CZ12345678"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="companyRegistry">Данные о регистрации</Label>
+                  <Textarea
+                    id="companyRegistry"
+                    name="companyRegistry"
+                    value={settings.companyRegistry || ""}
+                    onChange={handleChange}
+                    placeholder="např. Zapsáno u Městského soudu v Praze, oddíl C, vložka 12345"
+                    className="min-h-[80px]"
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="facebookUrl">Facebook URL</Label>

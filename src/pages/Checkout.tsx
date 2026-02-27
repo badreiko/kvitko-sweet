@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/layout/Layout";
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     getActiveDeliveryZones,
     getActivePaymentMethods,
@@ -63,6 +64,7 @@ export default function Checkout() {
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     // Customer info
     const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
@@ -657,6 +659,28 @@ export default function Checkout() {
                                                     })}
                                                 </div>
                                             )}
+
+                                            <div className="mt-8 bg-muted/30 border border-border/50 rounded-2xl p-5">
+                                                <div className="flex items-start space-x-3">
+                                                    <Checkbox
+                                                        id="terms"
+                                                        checked={termsAccepted}
+                                                        onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                                                        className="mt-1"
+                                                    />
+                                                    <div className="grid gap-1.5 leading-none">
+                                                        <label
+                                                            htmlFor="terms"
+                                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-foreground"
+                                                        >
+                                                            Souhlasím s obchodními podmínkami a zpracováním osobních údajů
+                                                        </label>
+                                                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                                                            Potvrzuji, že jsem se seznámil/a s <button onClick={(e) => { e.preventDefault(); window.open('/terms', '_blank') }} className="text-primary hover:underline">Obchodními podmínkami</button> a <button onClick={(e) => { e.preventDefault(); window.open('/privacy', '_blank') }} className="text-primary hover:underline">Zásadami zpracování osobních údajů</button> a souhlasím s nimi. Souhlas je povinný pro dokončení objednávky.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
@@ -720,7 +744,7 @@ export default function Checkout() {
                                             ) : (
                                                 <Button
                                                     onClick={handleSubmitOrder}
-                                                    disabled={!isStepValid(step) || isSubmitting}
+                                                    disabled={!isStepValid(step) || !termsAccepted || isSubmitting}
                                                     className="rounded-full px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all min-w-[200px]"
                                                 >
                                                     {isSubmitting ? (

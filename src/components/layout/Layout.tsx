@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Header from "./Header";
 import Footer from "./Footer";
 import { BlogNotification } from "../BlogNotification";
+import CookieBanner from "./CookieBanner";
 
 interface LayoutProps {
   children: ReactNode;
@@ -29,6 +30,7 @@ const Layout = ({ children }: LayoutProps) => {
       </AnimatePresence>
       <Footer />
       <BlogNotification />
+      <CookieBanner />
     </div>
   );
 };

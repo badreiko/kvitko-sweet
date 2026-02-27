@@ -19,8 +19,7 @@ import {
   Loader2,
   CheckCircle2,
   Clock,
-  XCircle,
-  AlertCircle
+  XCircle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -193,8 +192,8 @@ export default function Account() {
                         key={tab.id}
                         onClick={() => setSearchParams({ tab: tab.id })}
                         className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 ${isActive
-                            ? "bg-primary/10 text-primary shadow-sm font-medium"
-                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                          ? "bg-primary/10 text-primary shadow-sm font-medium"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           }`}
                       >
                         <div className="flex items-center gap-3">
@@ -507,9 +506,9 @@ export default function Account() {
                                     </p>
                                   </div>
                                   <div className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${bouquet.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                      bouquet.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
-                                        bouquet.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                          'bg-gray-100 text-gray-800'
+                                    bouquet.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
+                                      bouquet.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                        'bg-gray-100 text-gray-800'
                                     }`}>
                                     {bouquet.status === 'confirmed' ? 'Potvrzeno' :
                                       bouquet.status === 'submitted' ? 'Odesláno' :

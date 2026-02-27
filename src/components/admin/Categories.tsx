@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Edit, Trash2, Tag, Loader2 } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Tag, Loader2, Upload, X, AlertCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -47,6 +47,8 @@ const Categories: FC = () => {
     order: 0,
     isActive: true
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Загрузка категорий из Firestore
   useEffect(() => {
@@ -107,6 +109,30 @@ const Categories: FC = () => {
     }));
   };
 
+  // Обработка выбора изображения
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Удаление изображения
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setNewCategory(prev => ({
+      ...prev,
+      imageUrl: ""
+    }));
+  };
+
   // Добавление новой категории
   const handleAddCategory = async () => {
     try {
@@ -125,10 +151,15 @@ const Categories: FC = () => {
         isActive: newCategory.isActive === undefined ? true : newCategory.isActive,
       };
 
-      const categoryId = await addCategory(categoryData as Omit<Category, 'id'>);
+      const categoryId = await addCategory(categoryData as Omit<Category, 'id'>, imageFile || undefined);
 
-      // Добавляем новую категорию в локальный state
-      setCategories(prev => [...prev, { id: categoryId, ...categoryData } as Category]);
+      // Добавляем новую категорию в локальный state (обновляем с учетом реального imageUrl, если он был загружен)
+      const newCategoryWithImage = { ...categoryData, id: categoryId } as Category;
+      // Временно ставим local preview, пока страница не перезагрузится, чтобы юзер видел картинку
+      if (imagePreview && !newCategory.imageUrl) {
+        newCategoryWithImage.imageUrl = imagePreview;
+      }
+      setCategories(prev => [...prev, newCategoryWithImage]);
 
       // Сбрасываем форму
       setNewCategory({
@@ -139,6 +170,8 @@ const Categories: FC = () => {
         order: 0,
         isActive: true
       });
+      setImageFile(null);
+      setImagePreview(null);
 
       setIsAddDialogOpen(false);
       toast.success("Категория успешно добавлена");
@@ -161,6 +194,8 @@ const Categories: FC = () => {
       order: category.order ?? 0,
       isActive: category.isActive
     });
+    setImageFile(null);
+    setImagePreview(category.imageUrl || null);
     setIsEditDialogOpen(true);
   };
 
@@ -182,15 +217,21 @@ const Categories: FC = () => {
         isActive: newCategory.isActive === undefined ? true : newCategory.isActive
       };
 
-      await updateCategory(currentCategory.id, categoryData);
+      await updateCategory(currentCategory.id, categoryData, imageFile || undefined);
 
       // Обновляем категорию в локальном state
+      // Временно ставим local preview
+      if (imagePreview && !newCategory.imageUrl) {
+        categoryData.imageUrl = imagePreview;
+      }
       setCategories(prev =>
         prev.map(cat =>
           cat.id === currentCategory.id ? { ...cat, ...categoryData } : cat
         )
       );
 
+      setImageFile(null);
+      setImagePreview(null);
       setIsEditDialogOpen(false);
       toast.success("Категория успешно обновлена");
     } catch (error) {
@@ -269,16 +310,51 @@ const Categories: FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="imageUrl">URL изображения категории</Label>
-                  <Input
-                    id="imageUrl"
-                    name="imageUrl"
-                    placeholder="https://..."
-                    value={newCategory.imageUrl}
-                    onChange={handleInputChange}
-                  />
-                  {newCategory.imageUrl && (
-                    <img src={newCategory.imageUrl} alt="preview" className="w-full h-32 object-cover rounded-lg mt-1" />
+                  <Label htmlFor="image">Образ категории (Опционально)</Label>
+                  {imagePreview ? (
+                    <div className="relative aspect-video overflow-hidden rounded-md border">
+                      <img
+                        src={imagePreview}
+                        alt="Предпросмотр"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 rounded-full h-8 w-8"
+                        onClick={handleRemoveImage}
+                        type="button"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-md flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => document.getElementById('image')?.click()}>
+                      <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                      <div className="mb-2">
+                        <p className="text-sm font-medium">
+                          Нажмите для выбора изображения
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          PNG, JPG, WEBP (до 5MB)
+                        </p>
+                      </div>
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageChange}
+                      />
+                    </div>
+                  )}
+                  {!imagePreview && (
+                    <div className="p-2 bg-amber-50 text-amber-800 rounded flex items-start mt-2">
+                      <AlertCircle className="h-4 w-4 mr-2 shrink-0 mt-0.5" />
+                      <p className="text-xs">
+                        Рекомендуется добавить изображение.
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -460,16 +536,43 @@ const Categories: FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-imageUrl">URL изображения категории</Label>
-                <Input
-                  id="edit-imageUrl"
-                  name="imageUrl"
-                  placeholder="https://..."
-                  value={newCategory.imageUrl}
-                  onChange={handleInputChange}
-                />
-                {newCategory.imageUrl && (
-                  <img src={newCategory.imageUrl} alt="preview" className="w-full h-32 object-cover rounded-lg mt-1" />
+                <Label htmlFor="edit-image">Образ категории (Опционально)</Label>
+                {imagePreview ? (
+                  <div className="relative aspect-video overflow-hidden rounded-md border">
+                    <img
+                      src={imagePreview}
+                      alt="Предпросмотр"
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 rounded-full h-8 w-8"
+                      onClick={handleRemoveImage}
+                      type="button"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-md flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => document.getElementById('edit-image')?.click()}>
+                    <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                    <div className="mb-2">
+                      <p className="text-sm font-medium">
+                        Нажмите для выбора нового изображения
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Текущее изображение будет заменено
+                      </p>
+                    </div>
+                    <Input
+                      id="edit-image"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </div>
                 )}
               </div>
               <div className="space-y-2">

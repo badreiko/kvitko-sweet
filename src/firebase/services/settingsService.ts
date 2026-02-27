@@ -19,6 +19,9 @@ export interface SiteSettings {
     contactEmail: string;
     contactPhone: string;
     address: string;
+    companyIco?: string;
+    companyDic?: string;
+    companyRegistry?: string;
     enableMaintenance: boolean;
     currency: string;
     currencySymbol: string;
@@ -42,6 +45,9 @@ export const defaultSettings: SiteSettings = {
     contactEmail: "info@kvitko-sweet.cz",
     contactPhone: "+420 123 456 789",
     address: "Прага, Чехия",
+    companyIco: "",
+    companyDic: "",
+    companyRegistry: "",
     enableMaintenance: false,
     currency: "CZK",
     currencySymbol: "Kč",
