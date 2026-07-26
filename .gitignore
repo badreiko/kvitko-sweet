@@ -23,6 +23,9 @@ lighthouse-*.html
 # Claude Code local settings
 .claude/
 
+# Local image generation tooling — не деплоится
+tools/
+
 # Debug logs
 npm-debug.log*
 yarn-debug.log*
