@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { FlowerForBouquet, getAllFlowersForBouquet, ItemType } from "@/firebase/services/bouquetFlowerService";
-import { ArrowRight, ArrowLeft, Check, Flower, Package, MessageSquare, Plus, Minus, ShoppingBag } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Flower, Plus, Minus, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,11 @@ import { useAuth } from "@/context/AuthContext";
 import { createCustomBouquet } from "@/firebase/services/orderService";
 import { motion, AnimatePresence } from "framer-motion";
 import customBouquetFallback from "@/assets/custom-bouquet.svg";
+import bouquetStepFlowersIcon from "@/assets/icons/bouquet/bouquet-step-flowers.webp";
+import bouquetStepWrappingIcon from "@/assets/icons/bouquet/bouquet-step-wrapping.webp";
+import bouquetStepAddonsIcon from "@/assets/icons/bouquet/bouquet-step-addons.webp";
+import bouquetStepSummaryIcon from "@/assets/icons/bouquet/bouquet-step-summary.webp";
+import contactSuccessIcon from "@/assets/icons/contact/contact-success.webp";
 import {
   Dialog,
   DialogContent,
@@ -245,16 +250,20 @@ export default function CustomBouquet() {
               />
 
               <button onClick={() => setStep(1)} className={`relative w-1/4 py-3 text-sm font-medium rounded-full transition-colors flex items-center justify-center gap-2 ${step === 1 ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                <Flower className="h-4 w-4" /> <span className="hidden sm:inline">1. Květiny</span>
+                <img src={bouquetStepFlowersIcon} alt="" aria-hidden="true" className="h-6 w-6 object-contain" />
+                <span className="hidden sm:inline">1. Květiny</span>
               </button>
               <button onClick={() => isStepComplete(1) && setStep(2)} disabled={!isStepComplete(1)} className={`relative w-1/4 py-3 text-sm font-medium rounded-full transition-colors flex items-center justify-center gap-2 ${step === 2 ? 'text-primary' : 'text-muted-foreground hover:text-foreground disabled:opacity-50'}`}>
-                <Package className="h-4 w-4" /> <span className="hidden sm:inline">2. Balení</span>
+                <img src={bouquetStepWrappingIcon} alt="" aria-hidden="true" className="h-6 w-6 object-contain" />
+                <span className="hidden sm:inline">2. Balení</span>
               </button>
               <button onClick={() => isStepComplete(2) && setStep(3)} disabled={!isStepComplete(2)} className={`relative w-1/4 py-3 text-sm font-medium rounded-full transition-colors flex items-center justify-center gap-2 ${step === 3 ? 'text-primary' : 'text-muted-foreground hover:text-foreground disabled:opacity-50'}`}>
-                <MessageSquare className="h-4 w-4" /> <span className="hidden sm:inline">3. Doplňky</span>
+                <img src={bouquetStepAddonsIcon} alt="" aria-hidden="true" className="h-6 w-6 object-contain" />
+                <span className="hidden sm:inline">3. Doplňky</span>
               </button>
               <button onClick={() => isStepComplete(2) && setStep(4)} disabled={!isStepComplete(2)} className={`relative w-1/4 py-3 text-sm font-medium rounded-full transition-colors flex items-center justify-center gap-2 ${step === 4 ? 'text-primary' : 'text-muted-foreground hover:text-foreground disabled:opacity-50'}`}>
-                <Check className="h-4 w-4" /> <span className="hidden sm:inline">4. Shrnutí</span>
+                <img src={bouquetStepSummaryIcon} alt="" aria-hidden="true" className="h-6 w-6 object-contain" />
+                <span className="hidden sm:inline">4. Shrnutí</span>
               </button>
             </div>
           </div>
@@ -485,7 +494,12 @@ export default function CustomBouquet() {
                     <div className="flex-1 flex items-center justify-center">
                       <div className="text-center max-w-md animate-fade-in-up">
                         <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
-                          <Check className="w-10 h-10" />
+                          <img
+                            src={bouquetStepSummaryIcon}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-14 w-14 object-contain"
+                          />
                         </div>
                         <h2 className="text-3xl font-serif font-bold mb-4">Vaše mistrovské dílo je připraveno</h2>
                         <p className="text-muted-foreground mb-8">
@@ -725,7 +739,7 @@ export default function CustomBouquet() {
 
                           toast.success('Kytice uložena do košíku!', {
                             description: `Celková cena: ${totalPrice} Kč`,
-                            icon: <Check className="w-4 h-4" />
+                            icon: <img src={contactSuccessIcon} alt="" aria-hidden="true" className="h-5 w-5 object-contain" />
                           });
                         } catch (error) {
                           toast.error('Chyba při přidávání do košíku');
