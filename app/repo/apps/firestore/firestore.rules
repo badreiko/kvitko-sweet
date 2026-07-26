@@ -2,52 +2,148 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public read access to products, categories, and blog posts
+
+    // ── Функция проверки админа ────────────────────────────────────────
+    //
+    // Приложение хранит флаг в `users/{uid}.isAdmin` (Firestore-поле).
+    // Раньше правила проверяли `request.auth.token.admin == true` — это
+    // custom claim, который надо выставлять из Cloud Functions.
+    // Если функция не настроена (наш случай), в UI админка открывается,
+    // но любые записи отклоняются rules → «Missing or insufficient
+    // permissions». Единый источник истины — Firestore-документ.
+    //
+    // isAdmin() читает документ пользователя. Firestore тарифицирует
+    // это чтение, но с учётом кэша rules это ≤ 1 чтение на запрос.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // ── Публичные коллекции ────────────────────────────────────────────
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
-    
+
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
-    
+
+    match /flowers/{flowerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /blogPosts/{postId} {
-      allow read: if resource.data.published == true || (request.auth != null && request.auth.token.admin == true);
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
     }
-    
+
+    match /blogTags/{tagId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
-                            (request.auth.uid == resource.data.userId || 
-                             request.auth.token.admin == true);
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() &&
+                            (request.auth.uid == resource.data.userId || isAdmin());
     }
-    
+
+    // ── Комментарии блога: любой авторизованный создаёт, админ модерирует
+    match /blogComments/{commentId} {
+      allow read: if resource.data.status == 'approved' || isAdmin() ||
+                    (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() ||
+                            (isSignedIn() && request.auth.uid == resource.data.userId);
+    }
+
+    // ── Пользовательские данные ────────────────────────────────────────
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      // Читать/писать может сам пользователь или админ.
+      // ВАЖНО: пользователь НЕ может писать себе isAdmin=true (privilege
+      // escalation). request.resource.data.isAdmin == resource.data.isAdmin
+      // блокирует изменение флага при апдейте.
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId &&
+                    (request.resource.data.isAdmin == false ||
+                     !('isAdmin' in request.resource.data));
+      allow update: if (isSignedIn() && request.auth.uid == userId &&
+                        request.resource.data.isAdmin == resource.data.isAdmin) ||
+                    isAdmin();
+      allow delete: if isAdmin();
     }
-    
+
+    // ── Корзины: только владелец, админ смотрит через отдельный маршрут
+    match /carts/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isAdmin();
+    }
+
+    // ── Заказы ─────────────────────────────────────────────────────────
     match /orders/{orderId} {
-      allow create: if request.auth != null;
-      allow read, update: if request.auth != null && 
-                          (request.auth.uid == resource.data.userId || 
-                           request.auth.token.admin == true);
+      allow create: if isSignedIn();
+      allow read, update: if isSignedIn() &&
+                          (request.auth.uid == resource.data.userId || isAdmin());
+      allow delete: if isAdmin();
     }
-    
+
     match /customBouquets/{bouquetId} {
-      allow create: if request.auth != null;
-      allow read, update, delete: if request.auth != null && 
-                                  (request.auth.uid == resource.data.userId || 
-                                   request.auth.token.admin == true);
+      allow create: if isSignedIn();
+      allow read, update, delete: if isSignedIn() &&
+                                  (request.auth.uid == resource.data.userId || isAdmin());
     }
-    
-    // Default rule
+
+    // Счётчики номеров заказов (транзакционный инкремент при create order).
+    match /orderCounters/{day} {
+      allow read, write: if isSignedIn();
+    }
+
+    // ── Настройки сайта, зоны доставки, магазины, платежи ─────────────
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /deliveryZones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /paymentMethods/{methodId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /stores/{storeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Аналитика блога: пишет фронт, читает админ
+    match /blogAnalytics/{docId} {
+      allow read: if isAdmin();
+      allow create: if true;  // трекинг просмотров работает и для гостей
+    }
+    match /blogInteractions/{docId} {
+      allow read: if isAdmin() ||
+                    (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow create, delete: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Default deny — всё, что не описано выше, доступно только админу.
     match /{document=**} {
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      allow read, write: if isAdmin();
     }
   }
 }

@@ -1,14 +1,43 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { Facebook, Instagram, Mail, MapPin, Phone, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import Logo from "./Logo";
 import { getSiteSettings, SiteSettings, defaultSettings } from "@/firebase/services/settingsService";
+import { toast } from "sonner";
 
 const Footer = () => {
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = newsletterEmail.trim();
+    if (!email || !email.includes("@")) {
+      toast.error("Zadejte platný e-mail.");
+      return;
+    }
+    setNewsletterSubmitting(true);
+    try {
+      const res = await fetch("/.netlify/functions/newsletter-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({ message: "Odpověď serveru není JSON" }));
+      if (!res.ok) throw new Error(data.message || "Chyba serveru");
+      toast.success(data.message || "Děkujeme!");
+      setNewsletterEmail("");
+    } catch (err) {
+      console.error("Newsletter signup failed:", err);
+      toast.error(err instanceof Error ? err.message : "Nepodařilo se přihlásit k odběru.");
+    } finally {
+      setNewsletterSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -24,6 +53,9 @@ const Footer = () => {
 
   return (
     <footer className="bg-muted/50 border-t border-border/50 pt-16 pb-6 relative overflow-hidden">
+      {/* Скрытый заголовок секции — нужен для корректной иерархии h1→h2→h3
+          и accessibility (Lighthouse heading-order). */}
+      <h2 className="sr-only">Informace v patičce</h2>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       <div className="container-custom relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
@@ -132,12 +164,33 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <h3 className="text-lg font-serif font-bold mb-5">Odběr novinek</h3>
             <p className="text-muted-foreground mb-4 leading-relaxed">
-              Přihlaste se k odběru novinek a získejte 10% slevu na první nákup.
+              Přihlaste se k odběru novinek a získejte <span className="font-bold text-primary">slevu 10 %</span> na první nákup.
             </p>
-            <div className="flex gap-2">
-              <Input placeholder="Váš e-mail" type="email" className="rounded-xl border-border/50 bg-background focus-visible:ring-primary/20" />
-              <Button className="rounded-full shrink-0 px-4">Odebírat</Button>
-            </div>
+            <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
+              <Input
+                placeholder="Váš e-mail"
+                type="email"
+                required
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                disabled={newsletterSubmitting}
+                className="rounded-xl border-border/50 bg-background focus-visible:ring-primary/20"
+              />
+              <Button
+                type="submit"
+                disabled={newsletterSubmitting}
+                className="rounded-full shrink-0 px-4"
+              >
+                {newsletterSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Odebírat"
+                )}
+              </Button>
+            </form>
+            <p className="text-xs text-muted-foreground mt-3">
+              Slevový kód přijde e-mailem. Platnost 30 dní.
+            </p>
           </div>
         </div>
 

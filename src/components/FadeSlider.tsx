@@ -1,5 +1,6 @@
 // src/components/FadeSlider.tsx
 import { useState, useEffect } from 'react';
+import { SmartImage } from '@/components/SmartImage';
 
 interface FadeSliderProps {
     images: string[];
@@ -49,11 +50,13 @@ export function FadeSlider({
 
     return (
         <div className={`relative overflow-hidden ${className}`}>
-            <img
+            <SmartImage
                 src={displayImages[currentIndex]}
                 alt={alt}
-                className={`w-full h-full object-cover transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'
-                    }`}
+                fillParent
+                contentBg="bg-muted/30"
+                wrapperClassName="absolute inset-0"
+                className={`transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
             />
 
             {/* Индикаторы (точки) */}

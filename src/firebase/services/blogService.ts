@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config';
-import { compressBlogImage, formatFileSize } from '@/utils/imageCompression';
+import { compressBlogImage, formatFileSize, ImageOrientation } from '@/utils/imageCompression';
 
 // Определение типов
 export interface BlogPost {
@@ -23,14 +23,19 @@ export interface BlogPost {
   content: string;
   excerpt: string;
   imageUrl: string;
+  imageOrientation?: ImageOrientation;
+  imageAspectRatio?: number;
+  imageFocalPoint?: { x: number; y: number };
   author: string;
   tags?: string[];
   published: boolean;
   publishedAt: Date;
   createdAt: Date;
-  views?: number; // Количество просмотров
+  views?: number; // Количество просмотров (устаревшее — синхронизируется с viewCount)
+  viewCount?: number; // Основной счётчик, инкрементируется recordPostView
   commentCount?: number; // Количество комментариев
   likes?: number; // Количество лайков
+  likeCount?: number; // Синхронизируется с likes через recordPostInteraction
 }
 
 // Константы для коллекций
@@ -169,13 +174,16 @@ export const createPost = async (
             'compressedSize': String(compressedResult.compressedSize)
           }
         });
-        const imageUrl = await getDownloadURL(imageRef);
+        const baseUrl = await getDownloadURL(imageRef);
+        const imageUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
         console.log('[BlogService] Изображение успешно загружено:', imageUrl);
 
-        // Обновляем пост с URL изображения
+        // Обновляем пост с URL изображения и метаданными ориентации
         await updateDoc(docRef, {
-          imageUrl
+          imageUrl,
+          imageOrientation: compressedResult.orientation,
+          imageAspectRatio: compressedResult.aspectRatio,
         });
       } catch (error) {
         console.error('[BlogService] Ошибка загрузки изображения:', error);
@@ -242,12 +250,15 @@ export const updatePost = async (
             'compressedSize': String(compressedResult.compressedSize)
           }
         });
-        const imageUrl = await getDownloadURL(imageRef);
+        const baseUrl = await getDownloadURL(imageRef);
+        const imageUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
         console.log('[BlogService] Изображение обновлено:', imageUrl);
 
-        // Добавляем URL изображения в обновляемые данные
+        // Добавляем URL изображения и метаданные ориентации в обновляемые данные
         updateData.imageUrl = imageUrl;
+        updateData.imageOrientation = compressedResult.orientation;
+        updateData.imageAspectRatio = compressedResult.aspectRatio;
       } catch (error) {
         console.error('[BlogService] Ошибка обновления изображения:', error);
         // Продолжаем выполнение даже если загрузка изображения не удалась
@@ -270,7 +281,7 @@ export const deletePost = async (postId: string): Promise<void> => {
 
     // Удаляем изображение поста, если оно существует
     try {
-      const imageRef = ref(storage, `blog/${postId}`);
+      const imageRef = ref(storage, `blog/${postId}.webp`);
       await deleteObject(imageRef);
     } catch (error) {
       console.log('No image to delete or error: ', error);

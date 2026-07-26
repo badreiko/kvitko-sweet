@@ -68,53 +68,63 @@ export const recordPostView = async (
   }
 ): Promise<void> => {
   try {
-    // Проверяем, существует ли пост
     const postRef = doc(db, BLOG_POSTS_COLLECTION, postId);
     const postSnap = await getDoc(postRef);
-    
+
     if (!postSnap.exists()) {
       throw new Error(`Post with ID "${postId}" does not exist`);
     }
-    
-    // Проверяем, не просматривал ли уже этот пользователь/IP этот пост в течение последних 30 минут
-    // Это помогает избежать накрутки просмотров
-    const thirtyMinutesAgo = new Date();
-    thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
-    
-    let q;
-    if (data.userId) {
-      // Если пользователь авторизован, проверяем по userId
-      q = query(
-        collection(db, BLOG_VIEWS_COLLECTION),
-        where("postId", "==", postId),
-        where("userId", "==", data.userId),
-        where("createdAt", ">=", thirtyMinutesAgo)
-      );
-    } else {
-      // Иначе проверяем по IP
-      q = query(
-        collection(db, BLOG_VIEWS_COLLECTION),
-        where("postId", "==", postId),
-        where("ip", "==", data.ip),
-        where("createdAt", ">=", thirtyMinutesAgo)
-      );
+
+    // Проверяем 30-мин окно, только если задеплоен composite index
+    // (postId + userId + createdAt) для blogViews. Если индекс не готов —
+    // запрос падает с failed-precondition. В этом случае пропускаем
+    // server-side дедуп и полагаемся на клиентский localStorage
+    // (см. src/utils/blogTracking.ts).
+    let shouldRecord = true;
+    try {
+      const thirtyMinutesAgo = new Date();
+      thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
+
+      const q = data.userId
+        ? query(
+            collection(db, BLOG_VIEWS_COLLECTION),
+            where("postId", "==", postId),
+            where("userId", "==", data.userId),
+            where("createdAt", ">=", thirtyMinutesAgo)
+          )
+        : query(
+            collection(db, BLOG_VIEWS_COLLECTION),
+            where("postId", "==", postId),
+            where("ip", "==", data.ip),
+            where("createdAt", ">=", thirtyMinutesAgo)
+          );
+
+      const viewsSnapshot = await getDocs(q);
+      shouldRecord = viewsSnapshot.empty;
+    } catch (dedupErr) {
+      const code = (dedupErr as { code?: string }).code;
+      if (code === "failed-precondition") {
+        // Missing composite index → deploy `firestore.indexes.json`.
+        // Записываем всё равно, дедуп будет работать на клиенте.
+        console.warn(
+          "[recordPostView] Missing Firestore index for blogViews. " +
+            "Run `firebase deploy --only firestore:indexes` to enable " +
+            "server-side view deduplication."
+        );
+      } else {
+        throw dedupErr;
+      }
     }
-    
-    const viewsSnapshot = await getDocs(q);
-    
-    // Если просмотров не было в течение последних 30 минут, записываем новый
-    if (viewsSnapshot.empty) {
-      // Добавляем запись о просмотре
+
+    if (shouldRecord) {
       await addDoc(collection(db, BLOG_VIEWS_COLLECTION), {
         postId,
         ...data,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
-      
-      // Увеличиваем счетчик просмотров в посте
       await updateDoc(postRef, {
         viewCount: increment(1),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       });
     }
   } catch (error) {

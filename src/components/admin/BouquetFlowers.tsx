@@ -24,6 +24,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
 // Импорт типа FlowerForBouquet из bouquetFlowerService
 import { FlowerForBouquet, updateFlowerForCustomBouquet, ItemType } from "@/firebase/services/bouquetFlowerService";
 // Импорт типа MultiLanguageText из flowerService
@@ -624,11 +625,12 @@ const BouquetFlowers: FC = () => {
                     className="col-span-3"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="image" className="text-right">
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="image" className="text-right pt-2">
                     Изображение
                   </Label>
-                  <div className="col-span-3">
+                  <div className="col-span-3 space-y-3">
+                    <ImageUploadHint target="flower" />
                     <Input
                       id="image"
                       name="image"
@@ -901,6 +903,7 @@ const BouquetFlowers: FC = () => {
 
                                   <div className="space-y-2">
                                     <Label htmlFor="image">Изображение</Label>
+                                    <ImageUploadHint target="flower" />
                                     <Input
                                       id="image"
                                       name="image"

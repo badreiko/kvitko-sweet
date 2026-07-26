@@ -9,6 +9,7 @@ import {
   query,
   where,
   orderBy,
+  runTransaction,
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore';
@@ -75,26 +76,26 @@ export interface CustomBouquet {
 // Константы для коллекций
 const ORDERS_COLLECTION = 'orders';
 const CUSTOM_BOUQUETS_COLLECTION = 'customBouquets';
+const ORDER_COUNTERS_COLLECTION = 'orderCounters';
 
-// Генерация номера заказа (KS-YYYYMMDD-NNN)
+// Транзакционная генерация номера заказа (KS-YYYYMMDD-NNN).
+// Counter-документ orderCounters/{YYYYMMDD} хранит текущее значение last,
+// инкремент происходит атомарно в рамках runTransaction.
 const generateOrderNumber = async (): Promise<string> => {
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-  const prefix = `KS-${dateStr}`;
+  const counterRef = doc(db, ORDER_COUNTERS_COLLECTION, dateStr);
 
-  // Получаем заказы за сегодня для подсчета последовательного номера
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const q = query(
-    collection(db, ORDERS_COLLECTION),
-    where('createdAt', '>=', startOfDay),
-    orderBy('createdAt', 'desc')
-  );
+  const next = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(counterRef);
+    const current = snap.exists() ? (snap.data().last as number) || 0 : 0;
+    const value = current + 1;
+    tx.set(counterRef, { last: value, updatedAt: serverTimestamp() }, { merge: true });
+    return value;
+  });
 
-  const snapshot = await getDocs(q);
-  const orderCount = snapshot.size + 1;
-  const sequence = String(orderCount).padStart(3, '0');
-
-  return `${prefix}-${sequence}`;
+  const sequence = String(next).padStart(3, '0');
+  return `KS-${dateStr}-${sequence}`;
 };
 
 // Создание нового заказа
@@ -136,6 +137,22 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
   }
 };
 
+// Безопасно конвертирует Firestore Timestamp в Date.
+// Между addDoc и реальной записью serverTimestamp значение может быть null,
+// и обычный (x as Timestamp).toDate() крашит весь маппинг.
+function safeToDate(value: unknown): Date | undefined {
+  if (!value) return undefined;
+  if (value instanceof Date) return value;
+  if (typeof value === 'object' && value !== null && 'toDate' in value) {
+    try {
+      return (value as Timestamp).toDate();
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 // Получение заказов пользователя
 export const getUserOrders = async (userId: string): Promise<Order[]> => {
   try {
@@ -146,13 +163,15 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
     );
 
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      // Преобразование Timestamp в Date
-      createdAt: (doc.data().createdAt as Timestamp).toDate(),
-      deliveryDate: doc.data().deliveryDate ? (doc.data().deliveryDate as Timestamp).toDate() : undefined
-    })) as Order[];
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: safeToDate(data.createdAt) || new Date(),
+        deliveryDate: safeToDate(data.deliveryDate),
+      };
+    }) as Order[];
   } catch (error) {
     console.error('Error getting user orders: ', error);
     throw error;
@@ -173,8 +192,8 @@ export const getAllOrders = async (): Promise<Order[]> => {
       return {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        deliveryDate: data.deliveryDate?.toDate()
+        createdAt: safeToDate(data.createdAt) || new Date(),
+        deliveryDate: safeToDate(data.deliveryDate),
       };
     }) as Order[];
   } catch (error) {
@@ -309,11 +328,11 @@ export const getCustomBouquetById = async (bouquetId: string): Promise<CustomBou
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
+      const data = docSnap.data();
       return {
         id: docSnap.id,
-        ...docSnap.data(),
-        // Преобразование Timestamp в Date
-        createdAt: (docSnap.data().createdAt as Timestamp).toDate()
+        ...data,
+        createdAt: safeToDate(data.createdAt) || new Date(),
       } as CustomBouquet;
     } else {
       return null;
@@ -334,12 +353,14 @@ export const getUserCustomBouquets = async (userId: string): Promise<CustomBouqu
     );
 
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      // Преобразование Timestamp в Date
-      createdAt: (doc.data().createdAt as Timestamp).toDate()
-    })) as CustomBouquet[];
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: safeToDate(data.createdAt) || new Date(),
+      };
+    }) as CustomBouquet[];
   } catch (error) {
     console.error('Error getting user custom bouquets: ', error);
     throw error;

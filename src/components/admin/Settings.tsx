@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, Globe, CreditCard, Bell, RefreshCw, Clock, Map, Image, Upload, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "@/firebase/config";
 import { compressImage, formatFileSize } from "@/utils/imageCompression";
@@ -544,6 +545,7 @@ const Settings: FC = () => {
 
                 {/* Delivery Section Images */}
                 <div className="space-y-3">
+                  <ImageUploadHint target="delivery" />
                   <div className="flex justify-between items-center">
                     <Label>Секция доставки (Doručení květin)</Label>
                     <div>
@@ -603,6 +605,7 @@ const Settings: FC = () => {
 
                 {/* Custom Bouquet Section Images */}
                 <div className="space-y-3">
+                  <ImageUploadHint target="customBouquet" />
                   <div className="flex justify-between items-center">
                     <Label>Секция "Создай свой букет" (Vytvořte si vlastní kytici)</Label>
                     <div>
@@ -662,6 +665,7 @@ const Settings: FC = () => {
 
                 {/* Hero Section Images */}
                 <div className="space-y-3">
+                  <ImageUploadHint target="hero" />
                   <div className="flex justify-between items-center">
                     <Label>Hero секция (основное изображение вверху)</Label>
                     <div>

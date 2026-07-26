@@ -1,7 +1,7 @@
 // src/firebase/config.ts
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, Analytics } from "firebase/analytics";
 
@@ -21,7 +21,12 @@ export const app = initializeApp(firebaseConfig);
 
 // Инициализация сервисов
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// ignoreUndefinedProperties: при записи документов поля со значением `undefined`
+// будут пропущены вместо выброса ошибки. Нужно, чтобы admin-формы могли
+// безопасно слать опциональные поля (focal point, orientation и т.п.).
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
+});
 export const storage = getStorage(app);
 
 // Analytics только в браузере

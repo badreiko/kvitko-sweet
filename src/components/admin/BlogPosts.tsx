@@ -36,6 +36,10 @@ import {
 } from "@/firebase/services/blogService";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
+import { readImageDimensions } from "@/utils/imageCompression";
+import { checkAspect } from "@/utils/aspectRatio";
+import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
+import { FocalPointPicker, FocalPoint } from "@/components/admin/FocalPointPicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 
@@ -45,6 +49,9 @@ const BlogPosts: FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentPost, setCurrentPost] = useState<BlogPost | null>(null);
 
   // Check for openNew param
   useEffect(() => {
@@ -56,8 +63,6 @@ const BlogPosts: FC = () => {
       setSearchParams(newSearchParams);
     }
   }, [searchParams, setSearchParams]);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentPost, setCurrentPost] = useState<BlogPost | null>(null);
   const [newPost, setNewPost] = useState<Partial<BlogPost>>({
     title: "",
     content: "",
@@ -69,12 +74,29 @@ const BlogPosts: FC = () => {
   });
   const [newTag, setNewTag] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [focalPoint, setFocalPoint] = useState<FocalPoint | undefined>(undefined);
 
   // Используем новый хук для real-time получения всех постов (включая неопубликованные)
   const { posts, loading, refreshPosts } = useBlogPosts({
     publishedOnly: false,
     realTime: true
   });
+
+  // Check for editId param — open edit dialog for specific post
+  useEffect(() => {
+    const editId = searchParams.get("editId");
+    if (editId && posts.length > 0) {
+      const post = posts.find(p => p.id === editId);
+      if (post) {
+        setCurrentPost(post);
+        setIsEditDialogOpen(true);
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete("editId");
+        setSearchParams(newSearchParams);
+      }
+    }
+  }, [searchParams, setSearchParams, posts]);
 
   // Статистика блога
   const [blogStats, setBlogStats] = useState({
@@ -165,9 +187,24 @@ const BlogPosts: FC = () => {
     setNewPost(prev => ({ ...prev, published: checked }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedImage(e.target.files[0]);
+      const file = e.target.files[0];
+      setSelectedImage(file);
+
+      const reader = new FileReader();
+      reader.onload = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+
+      try {
+        const dims = await readImageDimensions(file);
+        const result = checkAspect(dims.aspectRatio, "blog", dims.orientation);
+        if (!result.ok && result.message) {
+          toast.warning(result.message);
+        }
+      } catch (err) {
+        console.warn("[BlogPosts] Не удалось проверить размеры изображения:", err);
+      }
     }
   };
 
@@ -203,6 +240,7 @@ const BlogPosts: FC = () => {
         ...postDataWithoutImage,
         // Если файл не выбран, но URL есть, сохраняем его
         ...(selectedImage ? {} : { imageUrl }),
+        imageFocalPoint: focalPoint,
         createdAt: new Date(),
         publishedAt: newPost.published ? new Date() : null
       } as Omit<BlogPost, 'id' | 'publishedAt' | 'createdAt'>;
@@ -222,6 +260,8 @@ const BlogPosts: FC = () => {
         published: false
       });
       setSelectedImage(null);
+      setImagePreview(null);
+      setFocalPoint(undefined);
 
       // Обновление списка постов
       refreshPosts();
@@ -235,6 +275,9 @@ const BlogPosts: FC = () => {
   const handleEditPost = (post: BlogPost) => {
     setCurrentPost(post);
     setNewPost(post);
+    setImagePreview(post.imageUrl || null);
+    setFocalPoint(post.imageFocalPoint);
+    setSelectedImage(null);
     setIsEditDialogOpen(true);
   };
 
@@ -255,6 +298,7 @@ const BlogPosts: FC = () => {
           ...postDataWithoutImage,
           // Если файл не выбран, но URL есть, сохраняем его
           ...(selectedImage ? {} : { imageUrl }),
+          imageFocalPoint: focalPoint,
           publishedAt: newPost.published && !currentPost.published ? new Date() : currentPost.publishedAt
         },
         selectedImage || undefined
@@ -273,6 +317,8 @@ const BlogPosts: FC = () => {
         published: false
       });
       setSelectedImage(null);
+      setImagePreview(null);
+      setFocalPoint(undefined);
 
       // Обновление списка постов
       refreshPosts();
@@ -314,7 +360,14 @@ const BlogPosts: FC = () => {
   return (
     <AdminLayout>
       {/* Диалог для добавления нового поста */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+        setIsAddDialogOpen(open);
+        if (open) {
+          setSelectedImage(null);
+          setImagePreview(null);
+          setFocalPoint(undefined);
+        }
+      }}>
         <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
             <DialogTitle>Добавить новый пост</DialogTitle>
@@ -374,17 +427,26 @@ const BlogPosts: FC = () => {
                 className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-image" className="text-right">
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="add-image" className="text-right pt-2">
                 Изображение
               </Label>
-              <div className="col-span-3">
+              <div className="col-span-3 space-y-3">
+                <ImageUploadHint target="blog" />
                 <Input
                   id="add-image"
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                 />
+                {imagePreview && (
+                  <FocalPointPicker
+                    imageUrl={imagePreview}
+                    value={focalPoint}
+                    onChange={setFocalPoint}
+                    previewAspect="16 / 9"
+                  />
+                )}
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -517,25 +579,25 @@ const BlogPosts: FC = () => {
                 className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-image" className="text-right">
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="edit-image" className="text-right pt-2">
                 Изображение
               </Label>
-              <div className="col-span-3">
+              <div className="col-span-3 space-y-3">
+                <ImageUploadHint target="blog" />
                 <Input
                   id="edit-image"
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                 />
-                {newPost.imageUrl && (
-                  <div className="mt-2">
-                    <img
-                      src={newPost.imageUrl}
-                      alt="Preview"
-                      className="max-h-[100px] rounded-md"
-                    />
-                  </div>
+                {imagePreview && (
+                  <FocalPointPicker
+                    imageUrl={imagePreview}
+                    value={focalPoint}
+                    onChange={setFocalPoint}
+                    previewAspect="16 / 9"
+                  />
                 )}
               </div>
             </div>

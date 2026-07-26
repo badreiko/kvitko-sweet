@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, ShoppingCart, User, Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,8 +30,18 @@ import { CartDrawer } from "@/components/CartDrawer";
 const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { user, logout } = useAuth();
   const { getItemsCount } = useCart();
+  const navigate = useNavigate();
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    navigate(`/catalog?q=${encodeURIComponent(q)}`);
+    setIsSearchOpen(false);
+  };
 
   // Количество товаров в корзине
   const itemsCount = getItemsCount();
@@ -334,24 +344,30 @@ const Header = () => {
 
         {/* Search Bar */}
         {isSearchOpen && (
-          <div className="mt-4 animate-fade-in">
+          <form onSubmit={handleSearchSubmit} className="mt-4 animate-fade-in">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Hledat produkty..."
-                className="pl-10"
+                className="pl-10 pr-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
               />
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="absolute right-1 top-1/2 transform -translate-y-1/2"
-                onClick={() => setIsSearchOpen(false)}
+                onClick={() => {
+                  setSearchQuery("");
+                  setIsSearchOpen(false);
+                }}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          </div>
+          </form>
         )}
       </div>
     </header>

@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -21,7 +22,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('React ErrorBoundary caught error', error, {
+      componentStack: errorInfo.componentStack,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
   }
 
   public render() {
@@ -34,19 +38,19 @@ class ErrorBoundary extends Component<Props, State> {
             <p className="text-muted-foreground mb-6">
               Omlouváme se, došlo k neočekávané chybě. Zkuste prosím obnovit stránku.
             </p>
-            <Button 
+            <Button
               onClick={() => window.location.reload()}
               className="mr-2"
             >
               Obnovit stránku
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => window.location.href = '/'}
             >
               Zpět na hlavní stránku
             </Button>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details className="mt-4 text-left">
                 <summary className="cursor-pointer text-sm text-muted-foreground">
                   Detaily chyby (pouze ve vývoji)

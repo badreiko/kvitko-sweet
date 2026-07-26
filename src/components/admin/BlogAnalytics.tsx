@@ -453,7 +453,7 @@ const BlogAnalytics: FC = () => {
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" asChild>
-                      <a href={`/admin/blog/posts?id=${post.id}`}>Просмотр</a>
+                      <Link to={`/admin/blog/posts?editId=${post.id}`}>Просмотр</Link>
                     </Button>
                   </div>
                 ))}
@@ -525,7 +525,7 @@ const BlogAnalytics: FC = () => {
               </Link>
             </Button>
             <Button asChild variant="secondary" className="h-auto py-4 flex flex-col">
-              <Link to="/admin/blog/posts?new=true">
+              <Link to="/admin/blog/posts?openNew=true">
                 <FileText className="h-8 w-8 mb-2" />
                 <span>Создать новый пост</span>
               </Link>

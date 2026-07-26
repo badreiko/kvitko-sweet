@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /account
+Disallow: /checkout
+Disallow: /cart
+Disallow: /login
+Disallow: /register
+Disallow: /verify-email
+Disallow: /reset-password
+
+Sitemap: https://kvitko-sweet.netlify.app/sitemap.xml

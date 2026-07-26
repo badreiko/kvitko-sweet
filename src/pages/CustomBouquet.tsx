@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { createCustomBouquet } from "@/firebase/services/orderService";
 import { motion, AnimatePresence } from "framer-motion";
+import customBouquetFallback from "@/assets/custom-bouquet.svg";
 import {
   Dialog,
   DialogContent,
@@ -658,7 +659,13 @@ export default function CustomBouquet() {
                     className="w-full rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-base py-6 bg-primary text-primary-foreground group"
                     disabled={selectedFlowers.length === 0}
                     onClick={async () => {
-                      let bouquetId = Date.now().toString();
+                      // crypto.randomUUID() гарантирует уникальность даже при
+                      // одновременных добавлениях. Раньше Date.now() мог
+                      // совпасть между двумя букетами в одну миллисекунду,
+                      // и cart схлопывал их в одну позицию по id.
+                      let bouquetId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                        ? `bouquet-${crypto.randomUUID()}`
+                        : `bouquet-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
                       const bouquetFlowers = selectedFlowers.map(s => {
                         const d = getItemDetails(s.id, ItemType.FLOWER);
@@ -676,7 +683,14 @@ export default function CustomBouquet() {
                         return { id: s.id, name: d?.name || '', price: d?.price || 0, quantity: s.quantity, imageUrl: d?.img || '', itemType: ItemType.ADDITION };
                       });
 
-                      const bouquetImageUrl = bouquetFlowers[0]?.imageUrl || '';
+                      // Fallback chain: первая загруженная картинка цветка →
+                      // первая упаковка → дефолтная SVG букета. Не отдаём
+                      // пустую строку — это даёт <img src=""> и второй HTTP
+                      // запрос за «текущей страницей» в большинстве браузеров.
+                      const bouquetImageUrl =
+                        bouquetFlowers.find(f => f.imageUrl)?.imageUrl ||
+                        bouquetWrapping?.imageUrl ||
+                        customBouquetFallback;
                       const totalPrice = calculateTotal();
 
                       const proceedAddToCart = async (shouldSaveToDb: boolean) => {

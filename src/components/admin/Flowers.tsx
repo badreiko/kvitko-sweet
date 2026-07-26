@@ -26,6 +26,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
+import { FocalPointPicker, FocalPoint } from "@/components/admin/FocalPointPicker";
+import { X } from "lucide-react";
 import {
   Flower as FlowerType,
   getAllFlowers,
@@ -36,6 +39,8 @@ import {
 import { ItemType } from "@/firebase/services/bouquetFlowerService";
 import { storage } from "@/firebase/config";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { compressImage, readImageDimensions, formatFileSize } from "@/utils/imageCompression";
+import { checkAspect } from "@/utils/aspectRatio";
 
 // Типы цветов для выбора
 const flowerTypes = [
@@ -45,6 +50,11 @@ const flowerTypes = [
   { value: "orchid", label: "Орхидея" },
   { value: "other", label: "Другое" }
 ];
+
+const flowerDialogContentClassName =
+  "flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden sm:max-w-[640px]";
+const flowerDialogBodyClassName = "grid min-h-0 flex-1 gap-4 overflow-y-auto py-4 pr-2";
+const flowerDialogFooterClassName = "shrink-0 border-t pt-4";
 
 const Flowers: FC = () => {
   const [flowers, setFlowers] = useState<FlowerType[]>([]);
@@ -77,6 +87,8 @@ const Flowers: FC = () => {
 
   // Состояния для работы с файлами
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [focalPoint, setFocalPoint] = useState<FocalPoint | undefined>(undefined);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Загрузка цветов из Firestore
@@ -161,43 +173,59 @@ const Flowers: FC = () => {
     }
   };
 
-  // Обработчик файла изображения
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('File input change event:', e);
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      console.log('Selected file:', file);
-      setSelectedFile(file);
-      toast.success(`Файл выбран: ${file.name}`);
-    } else {
-      console.log('No file selected');
+  // Обработчик файла изображения с предпросмотром и проверкой пропорции
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!(e.target.files && e.target.files[0])) return;
+    const file = e.target.files[0];
+    setSelectedFile(file);
+
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    try {
+      const dims = await readImageDimensions(file);
+      const result = checkAspect(dims.aspectRatio, "flower", dims.orientation);
+      if (!result.ok && result.message) toast.warning(result.message);
+    } catch (err) {
+      console.warn("[Flowers] Не удалось проверить размеры изображения:", err);
     }
   };
 
-  // Загрузка изображения в Firebase Storage
-  const uploadImage = async (file: File, flowerId: string): Promise<string> => {
+  // Удалить выбранный файл / превью
+  const handleRemoveImage = () => {
+    setSelectedFile(null);
+    setImagePreview(null);
+    setFocalPoint(undefined);
+    setNewFlower(prev => ({ ...prev, imageUrl: "" }));
+  };
+
+  // Сжатие и загрузка изображения в Firebase Storage.
+  // Возвращает URL и метаданные ориентации.
+  const uploadImage = async (
+    file: File,
+    flowerId: string
+  ): Promise<{ url: string; orientation: 'portrait' | 'landscape' | 'square'; aspectRatio: number }> => {
     try {
-      console.log('Starting upload for file:', file.name, 'to flower ID:', flowerId);
-      toast.info(`Начало загрузки изображения: ${file.name}`);
+      setUploadProgress(10);
+      const compressed = await compressImage(file, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1200,
+        quality: 0.85,
+        fileType: 'image/webp',
+        onProgress: (p) => setUploadProgress(10 + Math.round(p * 0.6)),
+      });
 
-      // Создаем ссылку на место в Storage, где будет храниться изображение
-      // Добавляем временную метку, чтобы избежать кэширования
-      const timestamp = new Date().getTime();
-      const imageRef = ref(storage, `flowers/${flowerId}/${timestamp}_${file.name}`);
-
-      // Загружаем файл
-      setUploadProgress(10); // Начало загрузки
-      const uploadResult = await uploadBytes(imageRef, file);
-      console.log('Upload completed:', uploadResult);
-      setUploadProgress(70); // Загрузка завершена
-
-      // Получаем URL загруженного изображения
-      const downloadURL = await getDownloadURL(imageRef);
-      console.log('Download URL obtained:', downloadURL);
-      setUploadProgress(100); // Загрузка полностью завершена
-
-      toast.success(`Изображение успешно загружено`);
-      return downloadURL;
+      const imageRef = ref(storage, `flowers/${flowerId}.webp`);
+      await uploadBytes(imageRef, compressed.file);
+      setUploadProgress(85);
+      const baseUrl = await getDownloadURL(imageRef);
+      // Cache-busting (см. productService): детерминированный путь требует
+      // версии в URL, чтобы CDN/браузер не отдавали старую картинку.
+      const downloadURL = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+      setUploadProgress(100);
+      console.log(`[Flowers] Загружено: ${formatFileSize(compressed.compressedSize)}`);
+      return { url: downloadURL, orientation: compressed.orientation, aspectRatio: compressed.aspectRatio };
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error(`Ошибка при загрузке изображения: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
@@ -230,6 +258,8 @@ const Flowers: FC = () => {
 
     // Сбрасываем выбранный файл
     setSelectedFile(null);
+    setImagePreview(null);
+    setFocalPoint(undefined);
     setUploadProgress(0);
 
     // Открываем диалог
@@ -295,13 +325,16 @@ const Flowers: FC = () => {
         const flowerId = await addFlower(flowerData);
         console.log('Flower added to database with ID:', flowerId);
 
-        // Загружаем изображение и получаем URL
-        const imageUrl = await uploadImage(selectedFile, flowerId);
-        console.log('Image uploaded successfully, URL:', imageUrl);
+        // Сжимаем и загружаем изображение, читаем ориентацию
+        const { url, orientation, aspectRatio } = await uploadImage(selectedFile, flowerId);
 
-        // Обновляем запись цветка с URL изображения
-        await updateFlower(flowerId, { imageUrl });
-        console.log('Flower record updated with image URL');
+        // Обновляем запись цветка с URL изображения и метаданными
+        await updateFlower(flowerId, {
+          imageUrl: url,
+          imageOrientation: orientation,
+          imageAspectRatio: aspectRatio,
+          imageFocalPoint: focalPoint,
+        });
 
         // Обновляем список цветов
         const updatedFlowers = await getAllFlowers();
@@ -331,6 +364,8 @@ const Flowers: FC = () => {
 
         // Сбрасываем выбранный файл
         setSelectedFile(null);
+        setImagePreview(null);
+        setFocalPoint(undefined);
         setUploadProgress(0);
 
         setIsAddDialogOpen(false);
@@ -351,6 +386,10 @@ const Flowers: FC = () => {
   const handleEditFlower = (flower: FlowerType) => {
     setCurrentFlower(flower);
     setNewFlower({ ...flower });
+    setSelectedFile(null);
+    setImagePreview(flower.imageUrl || null);
+    setFocalPoint(flower.imageFocalPoint);
+    setUploadProgress(0);
     setIsEditDialogOpen(true);
   };
 
@@ -363,10 +402,24 @@ const Flowers: FC = () => {
       }
 
       setLoading(true);
-      const flowerData = {
+
+      // Если выбран новый файл — сжимаем и грузим, обновляем URL + метаданные
+      let imageUpdates: Partial<FlowerType> = {};
+      if (selectedFile) {
+        const { url, orientation, aspectRatio } = await uploadImage(selectedFile, currentFlower.id);
+        imageUpdates = {
+          imageUrl: url,
+          imageOrientation: orientation,
+          imageAspectRatio: aspectRatio,
+        };
+      }
+
+      const flowerData: Partial<FlowerType> = {
         ...newFlower,
         price: Number(newFlower.price),
         stockQuantity: Number(newFlower.stockQuantity || 0),
+        imageFocalPoint: focalPoint,
+        ...imageUpdates,
         updatedAt: new Date()
       };
 
@@ -374,9 +427,13 @@ const Flowers: FC = () => {
 
       // Обновляем цветок в локальном state
       setFlowers(prev =>
-        prev.map(f => f.id === currentFlower.id ? { ...f, ...flowerData } : f)
+        prev.map(f => f.id === currentFlower.id ? { ...f, ...flowerData } as FlowerType : f)
       );
 
+      setSelectedFile(null);
+      setImagePreview(null);
+      setFocalPoint(undefined);
+      setUploadProgress(0);
       setIsEditDialogOpen(false);
       toast.success("Цветок успешно обновлен");
     } catch (error) {
@@ -439,14 +496,14 @@ const Flowers: FC = () => {
                   Добавить цветок
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className={flowerDialogContentClassName}>
                 <DialogHeader>
                   <DialogTitle>Добавить новый цветок</DialogTitle>
                   <DialogDescription>
                     Заполните информацию о новом цветке для добавления в каталог.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className={flowerDialogBodyClassName}>
                   {/* Название на разных языках */}
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name.cs" className="text-right">
@@ -641,11 +698,28 @@ const Flowers: FC = () => {
                       className="col-span-3"
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="image" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="image" className="text-right pt-2">
                       Изображение
                     </Label>
-                    <div className="col-span-3">
+                    <div className="col-span-3 space-y-3">
+                      <ImageUploadHint target="flower" />
+
+                      {imagePreview ? (
+                        <div className="relative aspect-square w-40 overflow-hidden rounded-md border">
+                          <img src={imagePreview} alt="Предпросмотр" className="w-full h-full object-cover" />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-7 w-7 rounded-full"
+                            onClick={handleRemoveImage}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : null}
+
                       <Input
                         id="image"
                         name="image"
@@ -667,10 +741,19 @@ const Flowers: FC = () => {
                           ></div>
                         </div>
                       )}
+
+                      {imagePreview && (
+                        <FocalPointPicker
+                          imageUrl={imagePreview}
+                          value={focalPoint}
+                          onChange={setFocalPoint}
+                          previewAspect="1 / 1"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className={flowerDialogFooterClassName}>
                   <Button type="submit" onClick={handleAddFlower} disabled={loading}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Добавить
@@ -758,14 +841,14 @@ const Flowers: FC = () => {
                               <span className="sr-only">Редактировать</span>
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className={flowerDialogContentClassName}>
                             <DialogHeader>
                               <DialogTitle>Редактировать цветок</DialogTitle>
                               <DialogDescription>
                                 Измените информацию о цветке.
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="grid gap-4 py-4">
+                            <div className={flowerDialogBodyClassName}>
                               {/* Название на разных языках */}
                               <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-name.cs" className="text-right">
@@ -934,20 +1017,63 @@ const Flowers: FC = () => {
                                   className="col-span-3"
                                 />
                               </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-imageUrl" className="text-right">
-                                  URL изображения
+                              <div className="grid grid-cols-4 items-start gap-4">
+                                <Label htmlFor="edit-image" className="text-right pt-2">
+                                  Изображение
                                 </Label>
-                                <Input
-                                  id="edit-imageUrl"
-                                  name="imageUrl"
-                                  value={newFlower.imageUrl || ""}
-                                  onChange={handleInputChange}
-                                  className="col-span-3"
-                                />
+                                <div className="col-span-3 space-y-3">
+                                  <ImageUploadHint target="flower" />
+
+                                  {imagePreview ? (
+                                    <div className="relative aspect-square w-40 overflow-hidden rounded-md border">
+                                      <img src={imagePreview} alt="Текущее изображение" className="w-full h-full object-cover" />
+                                      <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute top-1 right-1 h-7 w-7 rounded-full"
+                                        onClick={handleRemoveImage}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">Изображение не загружено</p>
+                                  )}
+
+                                  <Input
+                                    id="edit-image"
+                                    name="image"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                  />
+                                  {selectedFile && (
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      Будет загружено: {selectedFile.name}
+                                    </p>
+                                  )}
+                                  {uploadProgress > 0 && uploadProgress < 100 && (
+                                    <div className="w-full bg-secondary h-2 mt-2 rounded-full overflow-hidden">
+                                      <div
+                                        className="bg-primary h-full"
+                                        style={{ width: `${uploadProgress}%` }}
+                                      ></div>
+                                    </div>
+                                  )}
+
+                                  {imagePreview && (
+                                    <FocalPointPicker
+                                      imageUrl={imagePreview}
+                                      value={focalPoint}
+                                      onChange={setFocalPoint}
+                                      previewAspect="1 / 1"
+                                    />
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className={flowerDialogFooterClassName}>
                               <Button type="submit" onClick={handleSaveFlower} disabled={loading}>
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Сохранить

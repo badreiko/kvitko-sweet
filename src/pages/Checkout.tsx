@@ -58,7 +58,7 @@ const paymentIcons: Record<string, React.ElementType> = {
 
 export default function Checkout() {
     const navigate = useNavigate();
-    const { cart, getTotal, clearCart } = useCart();
+    const { cart, getTotal, clearCart, loading: cartLoading } = useCart();
     const { user } = useAuth();
 
     const [step, setStep] = useState(1);
@@ -109,8 +109,9 @@ export default function Checkout() {
     const [selectedStore, setSelectedStore] = useState<string>('');
     const [selectedPayment, setSelectedPayment] = useState<string>('');
 
-    // Order result
-    const [orderId, setOrderId] = useState<string>('');
+    // Номер заказа для показа пользователю (KS-YYYYMMDD-NNN).
+    // createOrder возвращает именно orderNumber, не Firestore doc id.
+    const [orderNumber, setOrderNumber] = useState<string>('');
 
     // Load delivery zones, payment methods, and stores
     useEffect(() => {
@@ -135,12 +136,15 @@ export default function Checkout() {
         loadData();
     }, []);
 
-    // Redirect if cart is empty
+    // Redirect if cart is empty — но не пока корзина грузится из Firestore,
+    // иначе авторизованный пользователь, который пришёл с прямой ссылки
+    // /checkout, будет редиректнут на /cart до завершения load.
     useEffect(() => {
+        if (cartLoading) return;
         if (cart.length === 0 && step < 4) {
             navigate('/cart');
         }
-    }, [cart, navigate, step]);
+    }, [cart, navigate, step, cartLoading]);
 
     // Get delivery price
     const getDeliveryPrice = () => {
@@ -242,8 +246,8 @@ export default function Checkout() {
                 }
             };
 
-            const newOrderId = await createOrder(orderData);
-            setOrderId(newOrderId);
+            const newOrderNumber = await createOrder(orderData);
+            setOrderNumber(newOrderNumber);
 
             // Send email notification
             try {
@@ -251,7 +255,7 @@ export default function Checkout() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        orderId: newOrderId,
+                        orderId: newOrderNumber,
                         customerEmail: customerInfo.email,
                         customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
                         items: cart.map(item => ({
@@ -272,8 +276,11 @@ export default function Checkout() {
                 // Don't fail the order if email fails
             }
 
-            clearCart();
+            // Сначала step=4 (чтобы effect "cart empty → /cart" не сработал),
+            // потом ждём очистку корзины (нужен await — иначе пользователь,
+            // вернувшийся назад, увидит товары в корзине).
             setStep(4);
+            await clearCart();
             window.scrollTo({ top: 0, behavior: 'smooth' });
             toast.success('Objednávka byla úspěšně vytvořena!');
         } catch (error) {
@@ -703,7 +710,7 @@ export default function Checkout() {
                                                 </p>
                                                 <div className="bg-muted/30 border border-border/50 rounded-2xl p-6 mb-10 max-w-md mx-auto">
                                                     <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold mb-1">Číslo objednávky</p>
-                                                    <p className="text-2xl font-mono font-bold text-foreground">{orderId}</p>
+                                                    <p className="text-2xl font-mono font-bold text-foreground">{orderNumber}</p>
                                                 </div>
                                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                                     <Button variant="outline" size="lg" className="rounded-full px-8 border-border/50" onClick={() => navigate('/')}>

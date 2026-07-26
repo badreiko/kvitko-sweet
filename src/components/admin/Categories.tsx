@@ -24,6 +24,10 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { readImageDimensions } from "@/utils/imageCompression";
+import { checkAspect } from "@/utils/aspectRatio";
+import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
+import { FocalPointPicker, FocalPoint } from "@/components/admin/FocalPointPicker";
 import {
   Category,
   getAllCategories,
@@ -48,6 +52,7 @@ const Categories: FC = () => {
     isActive: true
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [focalPoint, setFocalPoint] = useState<FocalPoint | undefined>(undefined);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Загрузка категорий из Firestore
@@ -110,7 +115,7 @@ const Categories: FC = () => {
   };
 
   // Обработка выбора изображения
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
@@ -120,6 +125,17 @@ const Categories: FC = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Мягкая проверка соотношения сторон
+      try {
+        const dims = await readImageDimensions(file);
+        const result = checkAspect(dims.aspectRatio, "category", dims.orientation);
+        if (!result.ok && result.message) {
+          toast.warning(result.message);
+        }
+      } catch (err) {
+        console.warn("[Categories] Не удалось проверить размеры изображения:", err);
+      }
     }
   };
 
@@ -127,6 +143,7 @@ const Categories: FC = () => {
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setFocalPoint(undefined);
     setNewCategory(prev => ({
       ...prev,
       imageUrl: ""
@@ -149,6 +166,7 @@ const Categories: FC = () => {
         imageUrl: newCategory.imageUrl || "",
         order: newCategory.order ?? categories.length,
         isActive: newCategory.isActive === undefined ? true : newCategory.isActive,
+        imageFocalPoint: focalPoint,
       };
 
       const categoryId = await addCategory(categoryData as Omit<Category, 'id'>, imageFile || undefined);
@@ -172,6 +190,7 @@ const Categories: FC = () => {
       });
       setImageFile(null);
       setImagePreview(null);
+      setFocalPoint(undefined);
 
       setIsAddDialogOpen(false);
       toast.success("Категория успешно добавлена");
@@ -196,6 +215,7 @@ const Categories: FC = () => {
     });
     setImageFile(null);
     setImagePreview(category.imageUrl || null);
+    setFocalPoint(category.imageFocalPoint);
     setIsEditDialogOpen(true);
   };
 
@@ -208,13 +228,14 @@ const Categories: FC = () => {
       }
 
       setLoading(true);
-      const categoryData = {
+      const categoryData: Partial<Category> = {
         name: newCategory.name,
         slug: newCategory.slug,
         description: newCategory.description || "",
         imageUrl: newCategory.imageUrl || "",
         order: newCategory.order ?? 0,
-        isActive: newCategory.isActive === undefined ? true : newCategory.isActive
+        isActive: newCategory.isActive === undefined ? true : newCategory.isActive,
+        imageFocalPoint: focalPoint,
       };
 
       await updateCategory(currentCategory.id, categoryData, imageFile || undefined);
@@ -232,6 +253,7 @@ const Categories: FC = () => {
 
       setImageFile(null);
       setImagePreview(null);
+      setFocalPoint(undefined);
       setIsEditDialogOpen(false);
       toast.success("Категория успешно обновлена");
     } catch (error) {
@@ -267,7 +289,16 @@ const Categories: FC = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Категории товаров</h1>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (open) {
+              // Сбрасываем состояние полей при открытии Add-диалога,
+              // чтобы не утекали значения из предыдущего edit-сеанса.
+              setImageFile(null);
+              setImagePreview(null);
+              setFocalPoint(undefined);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
@@ -311,6 +342,7 @@ const Categories: FC = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="image">Образ категории (Опционально)</Label>
+                  <ImageUploadHint target="category" />
                   {imagePreview ? (
                     <div className="relative aspect-video overflow-hidden rounded-md border">
                       <img
@@ -347,6 +379,14 @@ const Categories: FC = () => {
                         onChange={handleImageChange}
                       />
                     </div>
+                  )}
+                  {imagePreview && (
+                    <FocalPointPicker
+                      imageUrl={imagePreview}
+                      value={focalPoint}
+                      onChange={setFocalPoint}
+                      previewAspect="1 / 1"
+                    />
                   )}
                   {!imagePreview && (
                     <div className="p-2 bg-amber-50 text-amber-800 rounded flex items-start mt-2">
@@ -537,6 +577,7 @@ const Categories: FC = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-image">Образ категории (Опционально)</Label>
+                <ImageUploadHint target="category" />
                 {imagePreview ? (
                   <div className="relative aspect-video overflow-hidden rounded-md border">
                     <img
@@ -573,6 +614,14 @@ const Categories: FC = () => {
                       onChange={handleImageChange}
                     />
                   </div>
+                )}
+                {imagePreview && (
+                  <FocalPointPicker
+                    imageUrl={imagePreview}
+                    value={focalPoint}
+                    onChange={setFocalPoint}
+                    previewAspect="1 / 1"
+                  />
                 )}
               </div>
               <div className="space-y-2">

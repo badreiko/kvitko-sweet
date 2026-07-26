@@ -83,6 +83,10 @@ module.exports = {
 					"50%": {
 						transform: "translateY(-10px)",
 					},
+				},
+				"float-hero": {
+					"0%, 100%": { transform: "translateY(-10px)" },
+					"50%":      { transform: "translateY(10px)" },
 				}
 			},
 			animation: {
@@ -90,6 +94,7 @@ module.exports = {
 				"accordion-up": "accordion-up 0.2s ease-out",
 				"fade-in": "fade-in 0.5s ease-out forwards",
 				"float": "float 3s ease-in-out infinite",
+				"float-hero": "float-hero 6s ease-in-out infinite",
 			},
 		},
 	},

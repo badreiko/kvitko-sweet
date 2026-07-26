@@ -90,12 +90,15 @@ export default function ProductDetail() {
     loadProduct();
   }, [id]);
 
-  const handleAddToCartMorph = () => {
-    if (!product || isAdded) return;
+  const handleAddToCartMorph = async () => {
+    if (!product) return;
 
     try {
+      // Корректно ждём N последовательных добавлений. CartContext теперь
+      // race-safe (functional setState), но await + последовательно даёт
+      // гарантию, что persist в Firestore запишет финальное значение.
       for (let i = 0; i < quantity; i++) {
-        addToCart({
+        await addToCart({
           id: product.id,
           name: product.name,
           price: product.price,
@@ -104,11 +107,17 @@ export default function ProductDetail() {
       }
 
       setIsAdded(true);
-      toast.success(`${product.name} přidán do košíku`);
+      toast.success(
+        quantity === 1
+          ? `${product.name} přidán do košíku`
+          : `${product.name} (${quantity} ks) přidán do košíku`
+      );
 
+      // Короткий визуальный feedback на 1.2s. Раньше было 3 секунды и
+      // кнопка блокировалась — нельзя было быстро добавить ещё.
       setTimeout(() => {
         setIsAdded(false);
-      }, 3000);
+      }, 1200);
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast.error("Nepodařilo se přidat produkt do košíku");

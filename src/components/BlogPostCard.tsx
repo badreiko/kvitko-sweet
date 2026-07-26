@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { BlogPost as FirestoreBlogPost } from "@/firebase/services/blogService";
 import { motion } from "framer-motion";
+import { SmartImage } from "@/components/SmartImage";
 
 export type BlogPost = FirestoreBlogPost;
 
@@ -39,14 +40,21 @@ export function BlogPostCard({ post, featured = false }: BlogPostCardProps) {
           className={`overflow-hidden relative bg-muted shrink-0 ${featured ? "w-full sm:w-1/2 aspect-video sm:aspect-auto sm:h-auto" : "aspect-[4/3] w-full"
             }`}
         >
-          <motion.img
-            initial={false}
-            src={post.imageUrl}
-            alt={post.title}
-            className="w-full h-full object-cover"
+          <motion.div
+            className="w-full h-full"
             whileHover={{ scale: 1.08 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          />
+          >
+            <SmartImage
+              src={post.imageUrl}
+              alt={post.title}
+              fillParent
+              initialOrientation={post.imageOrientation}
+              focalPoint={post.imageFocalPoint}
+              contentBg="bg-muted"
+              wrapperClassName="w-full h-full"
+            />
+          </motion.div>
           {post.tags && post.tags.length > 0 && (
             <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
               <Badge variant="default" className="bg-primary/90 hover:bg-primary backdrop-blur-md shadow-sm">

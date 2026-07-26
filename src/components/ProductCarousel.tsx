@@ -27,6 +27,15 @@ export function ProductCarousel({ products }: ProductCarouselProps) {
         return () => window.removeEventListener("resize", handleResize);
     }, [products]);
 
+    // Пустое состояние
+    if (products.length === 0) {
+        return (
+            <div className="text-center py-16 border border-dashed border-border/60 rounded-3xl bg-muted/10">
+                <p className="text-muted-foreground">Zatím zde nejsou žádné produkty.</p>
+            </div>
+        );
+    }
+
     // Если товаров мало, нет смысла в карусели, показываем обычную сетку
     if (products.length <= 4) {
         return (

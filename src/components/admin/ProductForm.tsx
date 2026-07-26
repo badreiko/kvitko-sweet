@@ -23,6 +23,10 @@ import {
 } from "@/components/ui/card";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { toast } from "sonner";
+import { readImageDimensions } from "@/utils/imageCompression";
+import { checkAspect } from "@/utils/aspectRatio";
+import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
+import { FocalPointPicker, FocalPoint } from "@/components/admin/FocalPointPicker";
 import {
   getProductById,
   getAllCategories,
@@ -55,6 +59,7 @@ export default function ProductForm() {
   const [categories, setCategories] = useState<any[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [focalPoint, setFocalPoint] = useState<FocalPoint | undefined>(undefined);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState<string>("");
   
@@ -63,9 +68,14 @@ export default function ProductForm() {
     name: "",
     description: "",
     price: 0,
+    discountPrice: undefined,
     category: "",
     inStock: true,
     featured: false,
+    isBestseller: false,
+    isNew: false,
+    stockQuantity: undefined,
+    occasions: [],
     tags: [],
     imageUrl: ""
   });
@@ -88,15 +98,21 @@ export default function ProductForm() {
               name: product.name,
               description: product.description,
               price: product.price,
+              discountPrice: product.discountPrice,
               category: product.category,
               inStock: product.inStock,
               featured: product.featured || false,
+              isBestseller: product.isBestseller || false,
+              isNew: product.isNew || false,
+              stockQuantity: product.stockQuantity,
+              occasions: product.occasions || [],
               tags: product.tags || [],
               imageUrl: product.imageUrl
             });
             
             setTags(product.tags || []);
             setImagePreview(product.imageUrl);
+            if (product.imageFocalPoint) setFocalPoint(product.imageFocalPoint);
           } else {
             toast.error("Produkt nebyl nalezen");
             navigate("/admin/products");
@@ -116,10 +132,30 @@ export default function ProductForm() {
   // Обработка изменения полей формы
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setProductData((prev: Partial<Product>) => ({
-      ...prev,
-      [name]: name === "price" ? Number(value) : value
-    }));
+    setProductData((prev: Partial<Product>) => {
+      // Числовые поля: пустое значение = undefined (иначе Firestore
+      // сохранит 0, что даст ложное «нет в наличии» для stockQuantity
+      // или «скидка до 0» для discountPrice).
+      const numericFields = ["price", "discountPrice", "stockQuantity"];
+      if (numericFields.includes(name)) {
+        return {
+          ...prev,
+          [name]: value === "" ? undefined : Number(value),
+        };
+      }
+      return { ...prev, [name]: value };
+    });
+  };
+
+  // Toggle occasion в списке. Используется чекбоксами Narozeniny/Svatba/…
+  const toggleOccasion = (key: string) => {
+    setProductData(prev => {
+      const current = prev.occasions || [];
+      const next = current.includes(key)
+        ? current.filter(o => o !== key)
+        : [...current, key];
+      return { ...prev, occasions: next };
+    });
   };
 
   // Обработка переключателей
@@ -131,17 +167,28 @@ export default function ProductForm() {
   };
 
   // Обработка выбора изображения
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      
+
       // Создаем предпросмотр
       const reader = new FileReader();
       reader.onload = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Мягкая проверка соотношения сторон (не блокирует загрузку)
+      try {
+        const dims = await readImageDimensions(file);
+        const result = checkAspect(dims.aspectRatio, "product", dims.orientation);
+        if (!result.ok && result.message) {
+          toast.warning(result.message);
+        }
+      } catch (err) {
+        console.warn("[ProductForm] Не удалось проверить размеры изображения:", err);
+      }
     }
   };
 
@@ -149,6 +196,7 @@ export default function ProductForm() {
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setFocalPoint(undefined);
     setProductData((prev: Partial<Product>) => ({
       ...prev,
       imageUrl: ""
@@ -195,10 +243,11 @@ export default function ProductForm() {
     setSaving(true);
     try {
       // Подготавливаем данные для сохранения, убеждаемся что featured имеет значение по умолчанию
-      const dataToSave = {
+      const dataToSave: Partial<Product> = {
         ...productData,
         featured: productData.featured || false,
-        tags: tags
+        tags: tags,
+        imageFocalPoint: focalPoint,
       };
 
       if (isEditing && id) {
@@ -371,7 +420,7 @@ export default function ProductForm() {
                       />
                       <Label htmlFor="inStock">Skladem</Label>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="featured"
@@ -379,6 +428,93 @@ export default function ProductForm() {
                         onCheckedChange={(checked) => handleSwitchChange('featured', checked)}
                       />
                       <Label htmlFor="featured">Doporučený produkt</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="isBestseller"
+                        checked={!!productData.isBestseller}
+                        onCheckedChange={(checked) => handleSwitchChange('isBestseller', checked)}
+                      />
+                      <Label htmlFor="isBestseller">Bestseller badge</Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="isNew"
+                        checked={!!productData.isNew}
+                        onCheckedChange={(checked) => handleSwitchChange('isNew', checked)}
+                      />
+                      <Label htmlFor="isNew">Novinka badge</Label>
+                    </div>
+                  </div>
+
+                  {/* Trust-сигналы для карточки */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border/40">
+                    <div className="space-y-2">
+                      <Label htmlFor="discountPrice">Původní cena (Kč)</Label>
+                      <Input
+                        id="discountPrice"
+                        name="discountPrice"
+                        type="number"
+                        min="0"
+                        placeholder="Например 590"
+                        value={productData.discountPrice ?? ""}
+                        onChange={handleChange}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Отображается как перечёркнутая цена, если больше текущей.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="stockQuantity">Количество на складе</Label>
+                      <Input
+                        id="stockQuantity"
+                        name="stockQuantity"
+                        type="number"
+                        min="0"
+                        placeholder="Оставьте пустым, если не отслеживаете"
+                        value={productData.stockQuantity ?? ""}
+                        onChange={handleChange}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        При 1-3 покажется бейдж «Poslední X kusů» — драйвит urgency.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Occasion multi-select — влияет на OccasionNav на главной
+                      и фильтр ?occasion= в каталоге. */}
+                  <div className="space-y-2 pt-4 border-t border-border/40">
+                    <Label>Podle příležitosti</Label>
+                    <p className="text-xs text-muted-foreground -mt-1 mb-2">
+                      Выберите, для каких поводов подходит товар. Клиенты фильтруют каталог по этим тегам.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { key: "birthday", label: "🎂 Narozeniny" },
+                        { key: "wedding", label: "💍 Svatba" },
+                        { key: "valentine", label: "💕 Valentýn" },
+                        { key: "thanks", label: "🙏 Poděkování" },
+                        { key: "general", label: "🌸 Univerzální" },
+                      ].map(o => {
+                        const active = productData.occasions?.includes(o.key);
+                        return (
+                          <button
+                            key={o.key}
+                            type="button"
+                            onClick={() => toggleOccasion(o.key)}
+                            className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                              active
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background border-border hover:bg-muted"
+                            }`}
+                          >
+                            {o.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </CardContent>
@@ -393,6 +529,7 @@ export default function ProductForm() {
                   <CardDescription>Nahrajte obrázek produktu</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <ImageUploadHint target="product" />
                   {imagePreview ? (
                     <div className="relative aspect-square overflow-hidden rounded-md">
                       <img
@@ -444,6 +581,18 @@ export default function ProductForm() {
                       <p className="text-sm">
                         Doporučuje se přidat obrázek produktu. Produkty s obrázky přitahují více pozornosti.
                       </p>
+                    </div>
+                  )}
+
+                  {imagePreview && (
+                    <div className="pt-2 border-t border-border/40">
+                      <p className="text-sm font-medium mb-2">Точка фокуса на изображении</p>
+                      <FocalPointPicker
+                        imageUrl={imagePreview}
+                        value={focalPoint}
+                        onChange={setFocalPoint}
+                        previewAspect="4 / 5"
+                      />
                     </div>
                   )}
                 </CardContent>

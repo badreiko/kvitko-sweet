@@ -5,10 +5,23 @@ node_modules
 
 # Production
 build
+dist
+.netlify
+
+# Test coverage
+coverage
+
+# Lighthouse reports
+lighthouse-*.json
+lighthouse-*.html
+.lighthouseci/
 
 # Misc
 .DS_Store
 *.pem
+
+# Claude Code local settings
+.claude/
 
 # Debug logs
 npm-debug.log*

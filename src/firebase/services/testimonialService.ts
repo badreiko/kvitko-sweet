@@ -26,6 +26,12 @@ export interface Testimonial {
     comment: string;
     rating: number; // 1-5
     imageUrl?: string;
+    /** Номер заказа для «Ověřená objednávka #KS-…» бейджа. */
+    orderNumber?: string;
+    /** URL изображения товара, о котором отзыв — визуально сильнее. */
+    productImageUrl?: string;
+    /** Название товара для подписи под фото. */
+    productName?: string;
     isActive: boolean;
     createdAt: Date;
     updatedAt?: Date;
@@ -36,6 +42,9 @@ export interface CreateTestimonialData {
     name: string;
     comment: string;
     rating: number;
+    orderNumber?: string;
+    productImageUrl?: string;
+    productName?: string;
     isActive?: boolean;
 }
 

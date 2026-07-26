@@ -4,6 +4,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
   useCallback
 } from 'react';
@@ -52,177 +53,188 @@ export function useCart() {
   return context;
 }
 
+import { mergeCartItems } from './cartMerge';
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { user } = useAuth();
 
-  // Загрузка корзины при инициализации или смене пользователя
-  useEffect(() => {
-    const loadCart = async () => {
-      setLoading(true);
-      try {
-        if (user) {
-          // Загружаем корзину авторизованного пользователя из Firestore
-          const cartRef = doc(db, CARTS_COLLECTION, user.id);
-          const cartDoc = await getDoc(cartRef);
+  // Зеркало state в ref — нужно для безопасного persist в Firestore из
+  // функций, которые могут отстреливаться в любой момент (race-safe). При
+  // быстрых последовательных add/update вычисляем next-state внутри
+  // setCart(prev => ...), а сохраняем актуальный снимок через ref.
+  const cartRef = useRef<CartItem[]>([]);
+  const loadingRef = useRef(true);
+  // Если пользователь дёргает addToCart до завершения первичной загрузки,
+  // помечаем флаг и не позволяем перезаписать серверную корзину.
+  const hasPendingPrivateOpsRef = useRef(false);
 
-          if (cartDoc.exists()) {
-            setCart(cartDoc.data().items || []);
-          } else {
-            // Создаем пустую корзину для нового пользователя
-            await setDoc(cartRef, { items: [], updatedAt: serverTimestamp() });
-            setCart([]);
-          }
-
-          // Если была локальная корзина гостя, переносим товары
-          const guestCart = localStorage.getItem(GUEST_CART_KEY);
-          if (guestCart) {
-            const guestItems = JSON.parse(guestCart);
-            if (guestItems.length > 0) {
-              // Объединяем корзины
-              const mergedCart = mergeCartItems([...cart, ...guestItems]);
-              setCart(mergedCart);
-              await updateDoc(cartRef, {
-                items: mergedCart,
-                updatedAt: serverTimestamp()
-              });
-
-              // Очищаем локальную корзину гостя
-              localStorage.removeItem(GUEST_CART_KEY);
-            }
-          }
-        } else {
-          // Загружаем корзину гостя из localStorage
-          const guestCart = localStorage.getItem(GUEST_CART_KEY);
-          if (guestCart) {
-            setCart(JSON.parse(guestCart));
-          } else {
-            setCart([]);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading cart:', error);
-        setCart([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCart();
-  }, [user]);
-
-  // Объединение товаров в корзине и суммирование количества
-  const mergeCartItems = (items: CartItem[]): CartItem[] => {
-    const mergedItems: Record<string, CartItem> = {};
-
-    items.forEach(item => {
-      if (mergedItems[item.id]) {
-        mergedItems[item.id].quantity += item.quantity;
-      } else {
-        mergedItems[item.id] = { ...item };
-      }
-    });
-
-    return Object.values(mergedItems);
-  };
-
-  // Сохранение корзины
-  const saveCartToDatabase = async (itemsToSave?: CartItem[]) => {
+  // Сохранение корзины — берёт actual cart из ref, не из closure.
+  const saveCartToDatabase = useCallback(async (itemsToSave?: CartItem[]) => {
+    const cartData = itemsToSave ?? cartRef.current;
     try {
-      const cartData = itemsToSave || cart;
       if (user) {
-        // Сохраняем в Firestore для авторизованного пользователя
-        const cartRef = doc(db, CARTS_COLLECTION, user.id);
-        await updateDoc(cartRef, {
+        const cartRef2 = doc(db, CARTS_COLLECTION, user.id);
+        await updateDoc(cartRef2, {
           items: cartData,
           updatedAt: serverTimestamp()
         });
       } else {
-        // Сохраняем в localStorage для гостя
         localStorage.setItem(GUEST_CART_KEY, JSON.stringify(cartData));
       }
     } catch (error) {
       console.error('Error saving cart:', error);
     }
-  };
+  }, [user]);
 
-  // Добавление товара в корзину
-  const addToCart = async (item: Omit<CartItem, "quantity">) => {
-    try {
-      const existingItemIndex = cart.findIndex(i => i.id === item.id);
-      let updatedCart: CartItem[];
+  // Загрузка корзины при инициализации или смене пользователя.
+  useEffect(() => {
+    let cancelled = false;
+    const loadCart = async () => {
+      setLoading(true);
+      loadingRef.current = true;
+      hasPendingPrivateOpsRef.current = false;
+      try {
+        if (user) {
+          const cartFsRef = doc(db, CARTS_COLLECTION, user.id);
+          const cartDoc = await getDoc(cartFsRef);
+          if (cancelled) return;
 
-      if (existingItemIndex >= 0) {
-        // Обновляем количество, если товар уже в корзине
-        updatedCart = [...cart];
-        updatedCart[existingItemIndex].quantity += 1;
+          let serverItems: CartItem[] = [];
+          if (cartDoc.exists()) {
+            serverItems = cartDoc.data().items || [];
+          } else {
+            await setDoc(cartFsRef, { items: [], updatedAt: serverTimestamp() });
+          }
+
+          const guestCart = localStorage.getItem(GUEST_CART_KEY);
+          let resolved: CartItem[];
+          if (guestCart) {
+            const guestItems: CartItem[] = JSON.parse(guestCart);
+            if (guestItems.length > 0) {
+              resolved = mergeCartItems([...serverItems, ...guestItems]);
+              await updateDoc(cartFsRef, {
+                items: resolved,
+                updatedAt: serverTimestamp()
+              });
+              localStorage.removeItem(GUEST_CART_KEY);
+            } else {
+              resolved = serverItems;
+            }
+          } else {
+            resolved = serverItems;
+          }
+
+          // Если за время загрузки уже были локальные изменения (быстрый
+          // клик «Do košíku» во время load), мерджим их к серверной версии,
+          // а не перезаписываем.
+          if (hasPendingPrivateOpsRef.current && cartRef.current.length > 0) {
+            resolved = mergeCartItems([...resolved, ...cartRef.current]);
+            await updateDoc(cartFsRef, {
+              items: resolved,
+              updatedAt: serverTimestamp()
+            });
+          }
+
+          cartRef.current = resolved;
+          setCart(resolved);
+        } else {
+          const guestCart = localStorage.getItem(GUEST_CART_KEY);
+          const resolved = guestCart ? JSON.parse(guestCart) : [];
+          cartRef.current = resolved;
+          setCart(resolved);
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error);
+        cartRef.current = [];
+        setCart([]);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          loadingRef.current = false;
+        }
+      }
+    };
+
+    loadCart();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Добавление товара. Functional setState + ref гарантируют, что 5 быстрых
+  // кликов дают +5, а не +1.
+  const addToCart = useCallback(async (item: Omit<CartItem, "quantity">) => {
+    let nextCart: CartItem[] = [];
+    setCart(prev => {
+      const idx = prev.findIndex(i => i.id === item.id);
+      if (idx >= 0) {
+        nextCart = prev.map((it, i) =>
+          i === idx ? { ...it, quantity: it.quantity + 1 } : it
+        );
       } else {
-        // Добавляем новый товар
-        updatedCart = [...cart, { ...item, quantity: 1 }];
+        nextCart = [...prev, { ...item, quantity: 1 }];
       }
-
-      setCart(updatedCart);
-      await saveCartToDatabase(updatedCart);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      throw error;
+      cartRef.current = nextCart;
+      return nextCart;
+    });
+    if (loadingRef.current) {
+      hasPendingPrivateOpsRef.current = true;
+      return; // persist отложен до конца loadCart
     }
-  };
+    await saveCartToDatabase(nextCart);
+  }, [saveCartToDatabase]);
 
-  // Удаление товара из корзины
-  const removeFromCart = async (itemId: string) => {
-    try {
-      const updatedCart = cart.filter(item => item.id !== itemId);
-      setCart(updatedCart);
-      await saveCartToDatabase(updatedCart);
-    } catch (error) {
-      console.error('Error removing from cart:', error);
-      throw error;
+  // Удаление товара.
+  const removeFromCart = useCallback(async (itemId: string) => {
+    let nextCart: CartItem[] = [];
+    setCart(prev => {
+      nextCart = prev.filter(item => item.id !== itemId);
+      cartRef.current = nextCart;
+      return nextCart;
+    });
+    if (loadingRef.current) {
+      hasPendingPrivateOpsRef.current = true;
+      return;
     }
-  };
+    await saveCartToDatabase(nextCart);
+  }, [saveCartToDatabase]);
 
-  // Обновление количества товара
-  const updateQuantity = async (itemId: string, quantity: number) => {
-    try {
-      if (quantity <= 0) {
-        await removeFromCart(itemId);
-        return;
-      }
-
-      const updatedCart = cart.map(item =>
+  // Обновление количества.
+  const updateQuantity = useCallback(async (itemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      await removeFromCart(itemId);
+      return;
+    }
+    let nextCart: CartItem[] = [];
+    setCart(prev => {
+      nextCart = prev.map(item =>
         item.id === itemId ? { ...item, quantity } : item
       );
-
-      setCart(updatedCart);
-      await saveCartToDatabase(updatedCart);
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      throw error;
+      cartRef.current = nextCart;
+      return nextCart;
+    });
+    if (loadingRef.current) {
+      hasPendingPrivateOpsRef.current = true;
+      return;
     }
-  };
+    await saveCartToDatabase(nextCart);
+  }, [saveCartToDatabase, removeFromCart]);
 
-  // Расчет общей суммы
   const getTotal = useCallback(() => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   }, [cart]);
 
-  // Получение общего количества товаров
   const getItemsCount = useCallback(() => {
     return cart.reduce((count, item) => count + item.quantity, 0);
   }, [cart]);
 
-  // Очистка корзины
-  const clearCart = async () => {
-    try {
-      const emptyCart: CartItem[] = [];
-      setCart(emptyCart);
-      await saveCartToDatabase(emptyCart);
-    } catch (error) {
-      console.error('Error clearing cart:', error);
-      throw error;
-    }
-  };
+  // Очистка корзины. Возвращает Promise — критично для checkout.
+  const clearCart = useCallback(async () => {
+    const emptyCart: CartItem[] = [];
+    cartRef.current = emptyCart;
+    setCart(emptyCart);
+    await saveCartToDatabase(emptyCart);
+  }, [saveCartToDatabase]);
 
   const value = {
     cart,

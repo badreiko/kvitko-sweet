@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config';
-import { compressCategoryImage, formatFileSize } from '@/utils/imageCompression';
+import { compressCategoryImage, formatFileSize, ImageOrientation } from '@/utils/imageCompression';
 
 // Константы для коллекций
 const CATEGORIES_COLLECTION = 'categories';
@@ -25,6 +25,9 @@ export interface Category {
   slug: string;
   description?: string;
   imageUrl?: string;
+  imageOrientation?: ImageOrientation;
+  imageAspectRatio?: number;
+  imageFocalPoint?: { x: number; y: number };
   parentId?: string;
   order?: number;
   isActive: boolean;
@@ -131,11 +134,14 @@ export const addCategory = async (
 
       const imageRef = ref(storage, `categories/${docRef.id}.webp`);
       await uploadBytes(imageRef, compressedResult.file);
-      const imageUrl = await getDownloadURL(imageRef);
+      const baseUrl = await getDownloadURL(imageRef);
+      const imageUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
-      // Обновляем категорию с URL изображения
+      // Обновляем категорию с URL изображения и метаданными ориентации
       await updateDoc(docRef, {
-        imageUrl
+        imageUrl,
+        imageOrientation: compressedResult.orientation,
+        imageAspectRatio: compressedResult.aspectRatio,
       });
     }
 
@@ -162,7 +168,7 @@ export const updateCategory = async (
 
       // Удаляем старое изображение, если оно существует
       try {
-        const oldImageRef = ref(storage, `categories/${categoryId}`);
+        const oldImageRef = ref(storage, `categories/${categoryId}.webp`);
         await deleteObject(oldImageRef);
       } catch {
         console.log('[CategoryService] Нет старого изображения для удаления');
@@ -175,10 +181,13 @@ export const updateCategory = async (
       // Загружаем новое изображение
       const imageRef = ref(storage, `categories/${categoryId}.webp`);
       await uploadBytes(imageRef, compressedResult.file);
-      const imageUrl = await getDownloadURL(imageRef);
+      const baseUrl = await getDownloadURL(imageRef);
+      const imageUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
-      // Добавляем URL изображения в обновляемые данные
+      // Добавляем URL изображения и метаданные ориентации в обновляемые данные
       categoryData.imageUrl = imageUrl;
+      categoryData.imageOrientation = compressedResult.orientation;
+      categoryData.imageAspectRatio = compressedResult.aspectRatio;
     }
 
     // Обновляем категорию
@@ -197,7 +206,7 @@ export const deleteCategory = async (categoryId: string): Promise<void> => {
 
     // Удаляем изображение категории, если оно существует
     try {
-      const imageRef = ref(storage, `categories/${categoryId}`);
+      const imageRef = ref(storage, `categories/${categoryId}.webp`);
       await deleteObject(imageRef);
     } catch (error) {
       // Игнорируем ошибку, если изображения нет

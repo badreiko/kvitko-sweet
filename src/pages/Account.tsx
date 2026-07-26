@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -561,7 +561,7 @@ export default function Account() {
                               Staňte se floristou a sestavte si svou vlastní, naprosto unikátní kytici v našem konfigurátoru.
                             </p>
                             <Button className="rounded-full px-8 h-12 shadow-md hover:shadow-lg transition-all" asChild>
-                              <a href="/custom-bouquet">Sestavit vlastní kytici</a>
+                              <Link to="/custom-bouquet">Sestavit vlastní kytici</Link>
                             </Button>
                           </div>
                         )}

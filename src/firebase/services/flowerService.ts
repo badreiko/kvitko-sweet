@@ -40,6 +40,9 @@ export interface Flower {
   stockQuantity: number;
   description?: string;
   imageUrl?: string;
+  imageOrientation?: 'portrait' | 'landscape' | 'square';
+  imageAspectRatio?: number;
+  imageFocalPoint?: { x: number; y: number };
   itemType?: ItemType; // Вид элемента: цветок, упаковка или дополнение
   forCustomBouquet?: boolean; // Флаг, указывающий, что элемент используется для букетов
   createdAt?: Date;

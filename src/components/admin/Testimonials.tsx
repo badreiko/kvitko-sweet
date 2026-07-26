@@ -55,6 +55,7 @@ import {
     toggleTestimonialStatus
 } from "@/firebase/services/testimonialService";
 import { formatFileSize, isSupportedImageFormat } from "@/utils/imageCompression";
+import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
 
 // Форматирование даты
 const formatDate = (date: Date) => {
@@ -435,6 +436,7 @@ const Testimonials: FC = () => {
                         {/* Фото */}
                         <div className="space-y-2">
                             <Label>Фото клиента</Label>
+                            <ImageUploadHint target="testimonialAvatar" />
                             <div className="flex items-center gap-4">
                                 {imagePreview ? (
                                     <div className="relative">

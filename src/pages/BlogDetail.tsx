@@ -1,20 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Calendar, User, ArrowLeft } from "lucide-react";
+import { Calendar, User, ArrowLeft, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/layout/Layout";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
-import { ru } from "date-fns/locale";
+import { cs } from "date-fns/locale";
 import { BlogPost, getPostById, getRelatedPosts } from "@/firebase/services/blogService";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
+import { trackBlogView, toggleBlogLike, hasLikedBlog } from "@/utils/blogTracking";
 
 export default function BlogDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+  const [liked, setLiked] = useState(false);
+  const [likeBusy, setLikeBusy] = useState(false);
 
   // Parallax constraints
   const headerRef = useRef<HTMLDivElement>(null);
@@ -27,10 +32,13 @@ export default function BlogDetail() {
     restDelta: 0.001
   });
 
-  // Hero parallax
+  // Hero parallax. layoutEffect: false — иначе framer-motion ругается,
+  // что ref ещё не hydrated: секция с ref рендерится только после того,
+  // как post загрузится (до этого показывается loading spinner).
   const { scrollYProgress: heroProgress } = useScroll({
     target: headerRef,
-    offset: ["start start", "end start"]
+    offset: ["start start", "end start"],
+    layoutEffect: false,
   });
 
   const y = useTransform(heroProgress, [0, 1], ["0%", "50%"]);
@@ -39,19 +47,25 @@ export default function BlogDetail() {
 
   const formatDate = (date: Date | null) => {
     if (!date) return "";
-    return format(date, "dd MMMM yyyy", { locale: ru });
+    // Чешская локаль — иначе на публичной странице (сайт cs) даты выводятся по-русски.
+    return format(date, "d. MMMM yyyy", { locale: cs });
   };
 
   useEffect(() => {
     const loadPost = async () => {
       if (!id) return;
       setLoading(true);
-      window.scrollTo(0, 0); // Reset scroll position when loading new post
+      window.scrollTo(0, 0);
 
       try {
         const postData = await getPostById(id);
         if (postData) {
           setPost(postData);
+          setLiked(hasLikedBlog(id));
+
+          // Фиксируем просмотр (fire-and-forget, не блокирует UI).
+          void trackBlogView(id, user?.id);
+
           if (postData.tags && postData.tags.length > 0) {
             const mainTag = postData.tags[0];
             try {
@@ -69,7 +83,15 @@ export default function BlogDetail() {
       }
     };
     loadPost();
-  }, [id]);
+  }, [id, user?.id]);
+
+  const handleLike = async () => {
+    if (!id || likeBusy) return;
+    setLikeBusy(true);
+    const nextLiked = await toggleBlogLike(id, user?.id);
+    setLiked(nextLiked);
+    setLikeBusy(false);
+  };
 
   if (loading) {
     return (
@@ -119,6 +141,11 @@ export default function BlogDetail() {
               src={post.imageUrl}
               alt={post.title}
               className="w-full h-full object-cover"
+              style={
+                post.imageFocalPoint
+                  ? { objectPosition: `${post.imageFocalPoint.x * 100}% ${post.imageFocalPoint.y * 100}%` }
+                  : undefined
+              }
             />
             {/* Dark gradient overlay for text readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
@@ -190,6 +217,27 @@ export default function BlogDetail() {
               <ReactMarkdown>{post.content}</ReactMarkdown>
             </div>
 
+            {/* Like button + счётчик. Клиентская дедупликация через
+                localStorage. Иконка залита primary color при активном
+                состоянии, серо-outline при неактивном. */}
+            <div className="mt-12 flex items-center justify-center gap-3">
+              <Button
+                variant={liked ? "default" : "outline"}
+                size="lg"
+                onClick={handleLike}
+                disabled={likeBusy}
+                className={`rounded-full h-12 px-6 gap-2 transition-all ${liked ? "shadow-lg shadow-primary/30" : ""}`}
+              >
+                <Heart className={`h-5 w-5 ${liked ? "fill-current" : ""}`} />
+                {liked ? "Líbí se mi" : "Dát like"}
+              </Button>
+              {typeof post.likeCount === "number" && post.likeCount > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {post.likeCount + (liked && !hasLikedBlog(post.id) ? 1 : 0)} lidí to má rádo
+                </span>
+              )}
+            </div>
+
             {/* Author Footer block */}
             <div className="mt-16 pt-8 border-t border-border flex items-center gap-6">
               <div className="w-16 h-16 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-xl font-bold font-serif shadow-inner shrink-0 object-cover overflow-hidden">
@@ -233,6 +281,11 @@ export default function BlogDetail() {
                             src={relatedPost.imageUrl}
                             alt={relatedPost.title}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            style={
+                              relatedPost.imageFocalPoint
+                                ? { objectPosition: `${relatedPost.imageFocalPoint.x * 100}% ${relatedPost.imageFocalPoint.y * 100}%` }
+                                : undefined
+                            }
                           />
                         </div>
                         <h3 className="font-serif font-bold text-xl mb-2 group-hover:text-primary transition-colors line-clamp-2 break-words">

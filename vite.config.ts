@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
@@ -24,6 +25,18 @@ const copyRedirects = () => {
 export default defineConfig({
   plugins: [
     react(),
+    // Агрессивная оптимизация локальных картинок при билде. Лечит
+    // главную проблему Lighthouse: src/assets/*.png по 1.5-2 MB.
+    // Sharp + svgo внутри плагина пережимают без потери видимого качества.
+    ViteImageOptimizer({
+      png: { quality: 75, compressionLevel: 9, adaptiveFiltering: true },
+      jpeg: { quality: 78, progressive: true },
+      jpg: { quality: 78, progressive: true },
+      webp: { quality: 78, effort: 6 },
+      avif: { quality: 60, effort: 6 },
+      svg: { multipass: true },
+      logStats: true,
+    }),
     copyRedirects()
   ],
   server: {
@@ -52,9 +65,21 @@ export default defineConfig({
         main: path.resolve(__dirname, 'index.html')
       },
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-navigation-menu', '@radix-ui/react-slot', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu']
+        // Намеренно держим vendor одним монолитным чанком. Дробление
+        // node_modules между несколькими manualChunks в Rollup может
+        // создать circular import между чанками и привести к TDZ-ошибке
+        // вида "cannot access lexical declaration 'n' before initialization"
+        // в production. Один vendor чанк = один порядок инициализации.
+        //
+        // Главный win всё равно сохраняется: код админки уходит в свой
+        // ленивый чанк через React.lazy в App.tsx, и витрина его не качает.
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+          if (id.includes('/src/components/admin/')) {
+            return 'admin';
+          }
         }
       }
     },
@@ -78,5 +103,12 @@ export default defineConfig({
     ],
     exclude: ['firebase']
   },
-  publicDir: 'public'
+  publicDir: 'public',
+  // Конфигурация Vitest. Тесты живут рядом с исходниками или в src/tests/.
+  // @ts-expect-error — поле `test` валидно для Vitest, но отсутствует в типах Vite.
+  test: {
+    environment: 'node',
+    globals: false,
+    include: ['src/**/*.test.{ts,tsx}'],
+  }
 })

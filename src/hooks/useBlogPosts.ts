@@ -53,12 +53,7 @@ export const useBlogPosts = (options: UseBlogPostsOptions = {}) => {
         } as BlogPost;
       });
 
-      console.log('[useBlogPosts] Загружено постов:', postsData.length);
-      console.log('[useBlogPosts] Все посты:', postsData.map(p => ({ id: p.id, title: p.title, published: p.published, publishedAt: p.publishedAt })));
-
       const filteredPosts = publishedOnly ? postsData.filter(post => post.published === true) : postsData;
-      console.log('[useBlogPosts] После фильтрации (published=true):', filteredPosts.length);
-
       setPosts(filteredPosts);
       setError(null);
     } catch (err) {
@@ -94,9 +89,7 @@ export const useBlogPosts = (options: UseBlogPostsOptions = {}) => {
               } as BlogPost;
             });
 
-            console.log('[useBlogPosts RT] Загружено постов:', postsData.length);
             const filteredPosts = publishedOnly ? postsData.filter(post => post.published === true) : postsData;
-            console.log('[useBlogPosts RT] После фильтрации:', filteredPosts.length);
 
             setPosts(filteredPosts);
             setLoading(false);

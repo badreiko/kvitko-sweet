@@ -94,6 +94,8 @@ export default function Catalog() {
   // Get current filters from URL
   const categoryFilter = getCategoryFromUrl();
   const sortBy = searchParams.get("sort") || "featured";
+  const searchQuery = (searchParams.get("q") || "").trim().toLowerCase();
+  const occasionFilter = (searchParams.get("occasion") || "").trim().toLowerCase();
 
   // Если категория изменилась, обновляем URL-параметры
   useEffect(() => {
@@ -144,6 +146,19 @@ export default function Catalog() {
       if (productCategorySlug !== categoryFilter) return false;
     }
     if (product.price < priceRange[0] || product.price > priceRange[1]) return false;
+    if (searchQuery) {
+      const haystack = `${product.name || ""} ${product.description || ""}`.toLowerCase();
+      if (!haystack.includes(searchQuery)) return false;
+    }
+    // Occasion-фильтр из ?occasion=birthday и т.д.
+    // Если у товара нет поля occasions — не фильтруем его из выдачи
+    // (пропускаем). Пусть админ постепенно проставляет.
+    if (occasionFilter) {
+      const productOccasions = (product as { occasions?: string[] }).occasions;
+      if (Array.isArray(productOccasions) && productOccasions.length > 0) {
+        if (!productOccasions.includes(occasionFilter)) return false;
+      }
+    }
     return true;
   });
 

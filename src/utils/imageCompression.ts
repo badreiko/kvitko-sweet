@@ -22,6 +22,11 @@ export interface CompressionOptions {
 }
 
 /**
+ * Ориентация изображения, рассчитанная по соотношению ширины и высоты.
+ */
+export type ImageOrientation = 'portrait' | 'landscape' | 'square';
+
+/**
  * Результат сжатия изображения
  */
 export interface CompressionResult {
@@ -35,6 +40,44 @@ export interface CompressionResult {
     compressionRatio: number;
     /** Время сжатия в миллисекундах */
     compressionTime: number;
+    /** Ширина в пикселях (после сжатия) */
+    width: number;
+    /** Высота в пикселях (после сжатия) */
+    height: number;
+    /** Соотношение сторон width/height */
+    aspectRatio: number;
+    /** Ориентация изображения */
+    orientation: ImageOrientation;
+}
+
+/**
+ * Считывает реальные размеры изображения из File через объект Image.
+ * Возвращает width/height/aspectRatio/orientation. ObjectURL освобождается.
+ */
+export async function readImageDimensions(file: File): Promise<{
+    width: number;
+    height: number;
+    aspectRatio: number;
+    orientation: ImageOrientation;
+}> {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            const width = img.naturalWidth;
+            const height = img.naturalHeight;
+            const aspectRatio = width && height ? width / height : 1;
+            const orientation: ImageOrientation =
+                aspectRatio > 1.1 ? 'landscape' : aspectRatio < 0.9 ? 'portrait' : 'square';
+            URL.revokeObjectURL(url);
+            resolve({ width, height, aspectRatio, orientation });
+        };
+        img.onerror = (err) => {
+            URL.revokeObjectURL(url);
+            reject(err);
+        };
+        img.src = url;
+    });
 }
 
 /**
@@ -86,12 +129,14 @@ export async function compressImage(
     const targetSizeBytes = (mergedOptions.maxSizeMB || 1) * 1024 * 1024;
     if (originalSize <= targetSizeBytes && !mergedOptions.fileType) {
         console.log(`[ImageCompression] Файл уже меньше ${mergedOptions.maxSizeMB}MB, сжатие не требуется`);
+        const dims = await readImageDimensions(file);
         return {
             file,
             originalSize,
             compressedSize: originalSize,
             compressionRatio: 0,
             compressionTime: 0,
+            ...dims,
         };
     }
 
@@ -123,12 +168,15 @@ export async function compressImage(
         console.log(`  - Сжатие: ${compressionRatio.toFixed(1)}%`);
         console.log(`  - Время: ${compressionTime.toFixed(0)}ms`);
 
+        const dims = await readImageDimensions(compressedFile);
+
         return {
             file: compressedFile,
             originalSize,
             compressedSize,
             compressionRatio,
             compressionTime,
+            ...dims,
         };
     } catch (error) {
         console.error('[ImageCompression] Ошибка сжатия:', error);

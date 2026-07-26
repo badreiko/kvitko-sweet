@@ -1,14 +1,14 @@
 // src/context/AuthContext.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  User, 
-  getCurrentUser, 
-  loginUser, 
-  logoutUser, 
-  registerUser, 
-  updateUserProfile, 
-  resetPassword, 
-  signInWithGoogle
+import {
+  User,
+  loginUser,
+  logoutUser,
+  registerUser,
+  updateUserProfile,
+  resetPassword,
+  signInWithGoogle,
+  subscribeToAuthChanges,
 } from '../firebase/services';
 
 interface AuthContextType {
@@ -17,7 +17,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName?: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (userData: Partial<User>) => Promise<void>;
+  // currentPassword нужен только при смене email (Firebase-требование).
+  updateProfile: (userData: Partial<User>, currentPassword?: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   isAuthenticated: boolean;
@@ -29,20 +30,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Проверяем состояние аутентификации при загрузке
+  // Подписываемся на состояние аутентификации на всё время жизни приложения.
+  // onAuthStateChanged срабатывает при:
+  //   - первоначальной загрузке,
+  //   - логине/логауте в этой или другой вкладке,
+  //   - refresh-е id-токена.
+  // Раньше слушатель отписывался после первого вызова → состояние не
+  // обновлялось, и Firebase Auth мог дрейфовать против локального state.
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
+    const unsubscribe = subscribeToAuthChanges((nextUser) => {
+      setUser(nextUser);
+      setLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
   // Авторизация пользователя
@@ -101,14 +101,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Обновление профиля пользователя
-  const updateProfile = async (userData: Partial<User>) => {
+  // Обновление профиля пользователя.
+  // currentPassword требуется только для смены email; для остальных полей —
+  // необязательный. Ошибку с кодом auth/current-password-required можно
+  // словить в UI и запросить пароль у пользователя.
+  const updateProfile = async (userData: Partial<User>, currentPassword?: string) => {
     if (!user) throw new Error('User not authenticated');
-    
+
     setLoading(true);
     try {
-      await updateUserProfile(user.id, userData);
-      
+      await updateUserProfile(user.id, userData, currentPassword);
+
       // Обновляем локальное состояние пользователя
       setUser(prevUser => {
         if (!prevUser) return null;

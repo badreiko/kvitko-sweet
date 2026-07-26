@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config';
-import { compressProductImage, formatFileSize } from '@/utils/imageCompression';
+import { compressProductImage, formatFileSize, ImageOrientation } from '@/utils/imageCompression';
 import { slugify } from '@/utils/slugify';
 
 // Определение интерфейса Product
@@ -27,10 +27,26 @@ export interface Product {
   price: number;
   discountPrice?: number;
   imageUrl: string;
+  imageOrientation?: ImageOrientation;
+  imageAspectRatio?: number;
+  imageFocalPoint?: { x: number; y: number };
   category: string;
   tags?: string[];
   featured: boolean;
   inStock: boolean;
+  // Опциональные trust-сигналы для карточки. Все флаги независимы, можно
+  // комбинировать (Bestseller + Nový и т.д.). Пустые значения — карточка
+  // выглядит как обычно.
+  isBestseller?: boolean;
+  isNew?: boolean;
+  /** Количество в наличии (для «Poslední X kusů» badge). */
+  stockQuantity?: number;
+  /**
+   * Список поводов, для которых подходит товар. Используется в
+   * OccasionNav фильтре: /catalog?occasion=birthday.
+   * Пример: ['birthday', 'thanks', 'general']
+   */
+  occasions?: string[];
   createdAt: Date;
 }
 
@@ -214,11 +230,16 @@ export const addProduct = async (
 
       const imageRef = ref(storage, `products/${docRef.id}.webp`);
       await uploadBytes(imageRef, compressedResult.file);
-      const imageUrl = await getDownloadURL(imageRef);
+      const baseUrl = await getDownloadURL(imageRef);
+      // Cache-busting: при обновлении путь storage детерминированный, поэтому
+      // браузер/CDN могут отдать старую кэшированную картинку. Версия по
+      // времени загрузки гарантирует, что новый imageUrl будет уникальным.
+      const imageUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
-      // Обновляем продукт с URL изображения
       await updateDoc(docRef, {
-        imageUrl
+        imageUrl,
+        imageOrientation: compressedResult.orientation,
+        imageAspectRatio: compressedResult.aspectRatio,
       });
     }
 
@@ -250,7 +271,7 @@ export const updateProduct = async (
 
       // Удаляем старое изображение, если оно существует
       try {
-        const oldImageRef = ref(storage, `products/${productId}`);
+        const oldImageRef = ref(storage, `products/${productId}.webp`);
         await deleteObject(oldImageRef);
       } catch {
         // Игнорируем ошибку, если старого изображения нет
@@ -264,10 +285,13 @@ export const updateProduct = async (
       // Загружаем новое изображение
       const imageRef = ref(storage, `products/${productId}.webp`);
       await uploadBytes(imageRef, compressedResult.file);
-      const imageUrl = await getDownloadURL(imageRef);
+      const baseUrl = await getDownloadURL(imageRef);
+      const imageUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
-      // Добавляем URL изображения в обновляемые данные
+      // Добавляем URL изображения и метаданные ориентации в обновляемые данные
       productData.imageUrl = imageUrl;
+      productData.imageOrientation = compressedResult.orientation;
+      productData.imageAspectRatio = compressedResult.aspectRatio;
     }
 
     // Обновляем продукт
@@ -286,7 +310,7 @@ export const deleteProduct = async (productId: string): Promise<void> => {
 
     // Удаляем изображение продукта, если оно существует
     try {
-      const imageRef = ref(storage, `products/${productId}`);
+      const imageRef = ref(storage, `products/${productId}.webp`);
       await deleteObject(imageRef);
     } catch (error) {
       // Игнорируем ошибку, если изображения нет

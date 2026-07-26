@@ -42,7 +42,7 @@ import {
 import AdminLayout from "@/components/admin/AdminLayout";
 import { toast } from "sonner";
 import { getAllProducts, deleteProduct } from "@/firebase/services";
-import { Product } from "../../../app/repo/apps/firestore/models/product";
+import { Product } from "@/firebase/services/productService";
 import { Category, getAllCategories } from "@/firebase/services/categoryService";
 
 export default function Products() {
