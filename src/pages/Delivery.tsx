@@ -4,14 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Truck,
   Clock,
-  MapPin,
-  CreditCard,
-  Calendar,
-  PackageCheck,
-  Loader2,
   AlertCircle,
-  ChevronDown,
-  ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/layout/Layout";
@@ -25,20 +18,31 @@ import {
   getActivePaymentMethods,
   getActiveFAQ
 } from "@/firebase/services/deliverySettingsService";
+import deliveryStandardIcon from "@/assets/icons/delivery/delivery-standard.webp";
+import deliveryExpressIcon from "@/assets/icons/delivery/delivery-express.webp";
+import deliveryScheduledIcon from "@/assets/icons/delivery/delivery-scheduled.webp";
+import deliveryPickupIcon from "@/assets/icons/delivery/delivery-pickup.webp";
+import paymentCardOnlineIcon from "@/assets/icons/delivery/payment-card-online.webp";
+import paymentCashOnDeliveryIcon from "@/assets/icons/delivery/payment-cash-on-delivery.webp";
+import paymentBankTransferIcon from "@/assets/icons/delivery/payment-bank-transfer.webp";
+import contactLoadingIcon from "@/assets/icons/contact/contact-loading.webp";
+import contactFaqChevronIcon from "@/assets/icons/contact/contact-faq-chevron.webp";
 
 // Иконки для опций доставки
-const deliveryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  'truck': Truck,
-  'clock': Clock,
-  'calendar': Calendar,
-  'package': PackageCheck,
+const deliveryIcons: Record<string, string> = {
+  'truck': deliveryStandardIcon,
+  'clock': deliveryExpressIcon,
+  'calendar': deliveryScheduledIcon,
+  'package': deliveryPickupIcon,
 };
 
 // Иконки для способов оплаты
-const paymentIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  'credit-card': CreditCard,
-  'map-pin': MapPin,
-  'package-check': PackageCheck,
+const paymentIcons: Record<string, string> = {
+  'credit-card': paymentCardOnlineIcon,
+  'banknote': paymentCashOnDeliveryIcon,
+  'landmark': paymentBankTransferIcon,
+  'map-pin': paymentCashOnDeliveryIcon,
+  'package-check': paymentCashOnDeliveryIcon,
 };
 
 // Component for a single FAQ Accordion Item
@@ -56,7 +60,12 @@ function FAQAccordionItem({ faq, isOpen, onClick }: { faq: FAQ, isOpen: boolean,
           {faq.question}
         </h3>
         <div className={`flex-shrink-0 ml-4 h-8 w-8 rounded-full bg-background flex items-center justify-center border transition-colors ${isOpen ? 'border-primary/50 text-primary' : 'border-border'}`}>
-          {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <img
+            src={contactFaqChevronIcon}
+            alt=""
+            aria-hidden="true"
+            className={`h-5 w-5 object-contain transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          />
         </div>
       </button>
       <AnimatePresence>
@@ -120,7 +129,12 @@ export default function Delivery() {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+          <img
+            src={contactLoadingIcon}
+            alt=""
+            aria-hidden="true"
+            className="h-12 w-12 object-contain animate-spin mb-4"
+          />
           <p className="text-xl text-muted-foreground animate-pulse">Načítání informací...</p>
         </div>
       </Layout>
@@ -191,7 +205,7 @@ export default function Delivery() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {deliveryOptions.map((option, idx) => {
-                    const IconComponent = deliveryIcons[option.icon] || Truck;
+                    const icon = deliveryIcons[option.icon] || deliveryStandardIcon;
                     return (
                       <motion.div
                         key={option.id}
@@ -202,7 +216,12 @@ export default function Delivery() {
                         className="group bg-background/60 backdrop-blur-xl border border-border/50 rounded-3xl p-8 hover:-translate-y-1 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 flex flex-col items-center text-center h-full"
                       >
                         <div className="bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-inner">
-                          <IconComponent className="h-8 w-8" />
+                          <img
+                            src={icon}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-11 w-11 object-contain"
+                          />
                         </div>
                         <h3 className="font-serif font-bold text-xl mb-3">{option.name}</h3>
                         <p className="text-muted-foreground leading-relaxed flex-grow">{option.description}</p>
@@ -351,7 +370,7 @@ export default function Delivery() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {paymentMethods.map((payment, idx) => {
-                    const IconComponent = paymentIcons[payment.icon] || CreditCard;
+                    const icon = paymentIcons[payment.icon] || paymentCardOnlineIcon;
                     return (
                       <motion.div
                         key={payment.id}
@@ -363,7 +382,12 @@ export default function Delivery() {
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center gap-5 mb-4">
                           <div className="bg-primary/10 w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                            <IconComponent className="h-7 w-7" />
+                            <img
+                              src={icon}
+                              alt=""
+                              aria-hidden="true"
+                              className="h-10 w-10 object-contain"
+                            />
                           </div>
                           <h3 className="font-serif font-bold text-xl">{payment.name}</h3>
                         </div>
