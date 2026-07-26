@@ -5,13 +5,6 @@ import {
   Phone,
   Mail,
   Clock,
-  Send,
-  Check,
-  Loader2,
-  MessageSquare,
-  ShoppingCart,
-  Flower2,
-  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,12 +12,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/layout/Layout";
 import { getSiteSettings, SiteSettings, defaultSettings } from "@/firebase/services/settingsService";
+import contactSubjectGeneralIcon from "@/assets/icons/contact/contact-subject-general.webp";
+import contactSubjectOrderIcon from "@/assets/icons/contact/contact-subject-order.webp";
+import contactSubjectCustomIcon from "@/assets/icons/contact/contact-subject-custom.webp";
+import contactSubjectOtherIcon from "@/assets/icons/contact/contact-subject-other.webp";
+import contactSendIcon from "@/assets/icons/contact/contact-send.webp";
+import contactLoadingIcon from "@/assets/icons/contact/contact-loading.webp";
+import contactSuccessIcon from "@/assets/icons/contact/contact-success.webp";
+import contactFaqChevronIcon from "@/assets/icons/contact/contact-faq-chevron.webp";
 
 const subjects = [
-  { value: "general", label: "Obecný dotaz", icon: MessageSquare },
-  { value: "order", label: "Objednávka", icon: ShoppingCart },
-  { value: "custom", label: "Vlastní kytice", icon: Flower2 },
-  { value: "other", label: "Jiné", icon: HelpCircle },
+  { value: "general", label: "Obecný dotaz", icon: contactSubjectGeneralIcon },
+  { value: "order", label: "Objednávka", icon: contactSubjectOrderIcon },
+  { value: "custom", label: "Vlastní kytice", icon: contactSubjectCustomIcon },
+  { value: "other", label: "Jiné", icon: contactSubjectOtherIcon },
 ];
 
 const faqItems = [
@@ -137,7 +138,12 @@ export default function Contact() {
                         transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
                         className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6"
                       >
-                        <Check className="h-10 w-10 text-primary" />
+                        <img
+                          src={contactSuccessIcon}
+                          alt=""
+                          aria-hidden="true"
+                          className="h-14 w-14 object-contain"
+                        />
                       </motion.div>
                       <h3 className="text-2xl font-serif font-bold mb-3">Zpráva odeslána!</h3>
                       <p className="text-muted-foreground mb-8 max-w-sm leading-relaxed">
@@ -206,7 +212,7 @@ export default function Contact() {
                       <div className="space-y-3">
                         <Label className="text-sm font-medium">Předmět zprávy</Label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          {subjects.map(({ value, label, icon: Icon }) => {
+                          {subjects.map(({ value, label, icon }) => {
                             const isActive = formData.subject === value;
                             return (
                               <button
@@ -218,7 +224,12 @@ export default function Contact() {
                                   : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/30"
                                   }`}
                               >
-                                <Icon className="h-5 w-5" />
+                                <img
+                                  src={icon}
+                                  alt=""
+                                  aria-hidden="true"
+                                  className="h-8 w-8 object-contain"
+                                />
                                 {label}
                               </button>
                             );
@@ -247,9 +258,25 @@ export default function Contact() {
                         className="w-full rounded-full h-14 text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
                       >
                         {isSubmitting ? (
-                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Odesílání...</>
+                          <>
+                            <img
+                              src={contactLoadingIcon}
+                              alt=""
+                              aria-hidden="true"
+                              className="mr-2 h-5 w-5 object-contain animate-spin"
+                            />
+                            Odesílání...
+                          </>
                         ) : (
-                          <><Send className="mr-2 h-4 w-4" /> Odeslat zprávu</>
+                          <>
+                            <img
+                              src={contactSendIcon}
+                              alt=""
+                              aria-hidden="true"
+                              className="mr-2 h-5 w-5 object-contain"
+                            />
+                            Odeslat zprávu
+                          </>
                         )}
                       </Button>
                     </motion.form>
@@ -384,8 +411,13 @@ export default function Contact() {
                     <h3 className={`font-semibold text-base transition-colors ${isOpen ? "text-primary" : "text-foreground"}`}>
                       {item.q}
                     </h3>
-                    <div className={`flex-shrink-0 ml-4 h-7 w-7 rounded-full border flex items-center justify-center transition-all ${isOpen ? "border-primary/50 text-primary rotate-45" : "border-border/50 text-muted-foreground"}`}>
-                      <span className="text-lg leading-none">+</span>
+                    <div className={`flex-shrink-0 ml-4 h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${isOpen ? "border-primary/50" : "border-border/50"}`}>
+                      <img
+                        src={contactFaqChevronIcon}
+                        alt=""
+                        aria-hidden="true"
+                        className={`h-5 w-5 object-contain transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                      />
                     </div>
                   </button>
                   <AnimatePresence>
