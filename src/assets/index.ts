@@ -14,9 +14,9 @@ export { default as GiftBox } from './products/gifts/gift-box.png';
 export { default as GiftBasket } from './products/gifts/gift-basket.png';
 
 // Блог - существующие
-export { default as FlowerCare } from './blog/flower-care.png';
+export { default as FlowerCare } from './blog/flower-care.webp';
 export { default as SeasonalFlowers } from './blog/seasonal-flowers.png';
-export { default as FlowerSymbolism } from './blog/flower-symbolism.png';
+export { default as FlowerSymbolism } from './blog/flower-symbolism.webp';
 
 // Отзывы
 export { default as ClientFemale } from './testimonials/happy-client-female.png';

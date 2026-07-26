@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Heart, Truck, Leaf } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +27,9 @@ import { getSiteSettings, SectionImages } from "@/firebase/services/settingsServ
 import {
   SpringBouquet
 } from '@/assets';
+import homeFreshFlowersIcon from "@/assets/icons/home/home-fresh-flowers.webp";
+import homeHandmadeIcon from "@/assets/icons/home/home-handmade.webp";
+import homeFastDeliveryIcon from "@/assets/icons/home/home-fast-delivery.webp";
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -264,7 +267,12 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-10">
             <div className="flex items-center gap-4">
               <div className="bg-primary/10 p-3 rounded-2xl shrink-0">
-                <Leaf className="h-6 w-6 text-primary" />
+                <img
+                  src={homeFreshFlowersIcon}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-8 w-8 object-contain"
+                />
               </div>
               <div>
                 <h3 className="font-serif font-bold text-lg leading-tight">Čerstvé květiny</h3>
@@ -273,7 +281,12 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-4">
               <div className="bg-primary/10 p-3 rounded-2xl shrink-0">
-                <Heart className="h-6 w-6 text-primary" />
+                <img
+                  src={homeHandmadeIcon}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-8 w-8 object-contain"
+                />
               </div>
               <div>
                 <h3 className="font-serif font-bold text-lg leading-tight">Ruční výroba</h3>
@@ -282,7 +295,12 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-4">
               <div className="bg-primary/10 p-3 rounded-2xl shrink-0">
-                <Truck className="h-6 w-6 text-primary" />
+                <img
+                  src={homeFastDeliveryIcon}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-8 w-8 object-contain"
+                />
               </div>
               <div>
                 <h3 className="font-serif font-bold text-lg leading-tight">Doručení od 90 minut</h3>
@@ -384,7 +402,12 @@ export default function Home() {
             >
               <div className="absolute -inset-4 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
               <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-                <Truck className="h-8 w-8 text-white" />
+                <img
+                  src={homeFastDeliveryIcon}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-10 w-10 object-contain"
+                />
               </div>
               <h2 className="text-3xl font-serif font-bold mb-3 relative z-10">
                 Expresní doručení
@@ -429,7 +452,12 @@ export default function Home() {
                     <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md px-6 py-4 rounded-2xl shadow-lg border border-white/50 animate-bounce-slow">
                       <div className="flex items-center gap-4">
                         <div className="bg-primary/10 p-3 rounded-full text-primary">
-                          <Truck className="w-6 h-6" />
+                          <img
+                            src={homeFastDeliveryIcon}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-8 w-8 object-contain"
+                          />
                         </div>
                         <div>
                           <p className="font-bold text-foreground">Expresní</p>

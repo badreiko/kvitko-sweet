@@ -1,6 +1,11 @@
 // src/components/OccasionNav.tsx
 import { Link } from "react-router-dom";
-import { Cake, Heart, HeartHandshake, Gift, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import homeBirthdayIcon from "@/assets/icons/home/home-birthday.webp";
+import homeWeddingIcon from "@/assets/icons/home/home-wedding.webp";
+import homeValentineIcon from "@/assets/icons/home/home-valentine.webp";
+import homeThanksIcon from "@/assets/icons/home/home-thanks.webp";
+import homeOtherGiftIcon from "@/assets/icons/home/home-other-gift.webp";
 
 /**
  * Список поводов покупки цветов. Ключи используются как значение
@@ -14,35 +19,31 @@ import { Cake, Heart, HeartHandshake, Gift, ArrowRight } from "lucide-react";
 const OCCASIONS = [
   {
     key: "birthday",
-    icon: Cake,
+    icon: homeBirthdayIcon,
     title: "Narozeniny",
     subtitle: "Klasika i překvapení",
     accent: "from-amber-500/10 to-orange-500/10",
-    iconAccent: "text-amber-600",
   },
   {
     key: "wedding",
-    icon: Heart,
+    icon: homeWeddingIcon,
     title: "Svatba",
     subtitle: "Kytice pro nevěsty",
     accent: "from-rose-500/10 to-pink-500/10",
-    iconAccent: "text-rose-500",
   },
   {
     key: "valentine",
-    icon: Heart,
+    icon: homeValentineIcon,
     title: "Valentýn",
     subtitle: "Vyznání lásky",
     accent: "from-red-500/10 to-rose-500/10",
-    iconAccent: "text-red-500",
   },
   {
     key: "thanks",
-    icon: HeartHandshake,
+    icon: homeThanksIcon,
     title: "Poděkování",
     subtitle: "Když prostě záleží",
     accent: "from-green-500/10 to-emerald-500/10",
-    iconAccent: "text-emerald-600",
   },
 ] as const;
 
@@ -64,15 +65,19 @@ export function OccasionNav() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {OCCASIONS.map((o) => {
-            const Icon = o.icon;
             return (
               <Link
                 key={o.key}
                 to={`/catalog?occasion=${o.key}`}
                 className={`group relative overflow-hidden rounded-2xl md:rounded-3xl border border-border/60 bg-gradient-to-br ${o.accent} hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 md:p-6 flex flex-col items-start gap-3 min-h-[130px] md:min-h-[160px]`}
               >
-                <div className={`w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white/70 backdrop-blur-sm flex items-center justify-center shadow-sm ${o.iconAccent}`}>
-                  <Icon className="w-5 h-5 md:w-6 md:h-6" />
+                <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white/70 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                  <img
+                    src={o.icon}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-8 w-8 md:h-9 md:w-9 object-contain"
+                  />
                 </div>
                 <div className="flex-1 flex flex-col justify-end">
                   <h3 className="font-serif font-bold text-lg md:text-xl leading-tight text-foreground">
@@ -89,7 +94,12 @@ export function OccasionNav() {
         </div>
 
         <div className="mt-6 md:mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Gift className="h-4 w-4" />
+          <img
+            src={homeOtherGiftIcon}
+            alt=""
+            aria-hidden="true"
+            className="h-6 w-6 object-contain"
+          />
           <span>Nebo dárek na jinou příležitost — napište nám a poradíme.</span>
         </div>
       </div>
