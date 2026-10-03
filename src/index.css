@@ -126,6 +126,194 @@
     animation: mesh-move 20s ease-in-out infinite alternate;
   }
 
+  /* ── Сезонные/праздничные темы сайта ─────────────────────────────
+     Активная тема ставится на <html data-theme-palette="autumn">
+     (SiteThemeProvider); превью в админке ставит атрибут на свой блок.
+     Любая секция берёт цвета из --theme-*:
+       --theme-accent  акцент (курсив заголовков, ссылки)
+       --theme-clay    второй акцент (надписи над заголовком, подписи)
+       --theme-bg      тёплый фон секций
+       --theme-blush   розоватый оттенок для градиентов
+       --theme-warm    свечение
+       --theme-soft    фон плашек/иконок
+       --theme-line    тонкие линии
+     Цвета базовой темы — цвета бренда. */
+  :root,
+  [data-theme-palette="default"] {
+    --theme-accent: hsl(var(--primary));
+    --theme-clay: hsl(var(--primary));
+    --theme-bg: hsl(var(--background));
+    --theme-blush: hsl(var(--background));
+    --theme-warm: hsla(28, 100%, 74%, 0.35);
+    --theme-line: hsl(var(--border));
+    --theme-shadow: rgba(121, 92, 53, 0.18);
+    --theme-soft: hsl(var(--primary) / 0.1);
+  }
+  /* У сезонных тем плашки тёплые, в тон свечения Hero. */
+  [data-theme-palette]:not([data-theme-palette="default"]) {
+    --theme-soft: color-mix(in srgb, var(--theme-warm) 55%, transparent);
+  }
+  [data-theme-palette="spring"]    { --theme-bg:#f7f8f2; --theme-blush:#f6e1e4; --theme-accent:#3f7a52; --theme-clay:#b85d78; --theme-warm:#f3d3da; --theme-line:#ded6cc; }
+  [data-theme-palette="summer"]    { --theme-bg:#fbf8ef; --theme-blush:#f8e5c4; --theme-accent:#4b7638; --theme-clay:#b8732a; --theme-warm:#f5dcaa; --theme-line:#e0d6c3; }
+  [data-theme-palette="autumn"]    { --theme-bg:#faf7f2; --theme-blush:#f0e3db; --theme-accent:#326d49; --theme-clay:#a46049; --theme-warm:#eed4be; --theme-line:#d9cfbf; }
+  [data-theme-palette="winter"]    { --theme-bg:#f5f7f7; --theme-blush:#e1eaee; --theme-accent:#2f5f63; --theme-clay:#5f7f90; --theme-warm:#d6e5ea; --theme-line:#d3dadc; }
+  [data-theme-palette="halloween"] { --theme-bg:#f8f2eb; --theme-blush:#efd9c6; --theme-accent:#3f4b3b; --theme-clay:#bf5a1e; --theme-warm:#f1c796; --theme-line:#dccdbd; }
+  [data-theme-palette="christmas"] { --theme-bg:#f7f5f0; --theme-blush:#ede2da; --theme-accent:#2f5d43; --theme-clay:#a3333a; --theme-warm:#f0d6c0; --theme-line:#dcd2c6; }
+  :is(.dark [data-theme-palette], .dark[data-theme-palette]) { --theme-shadow: rgba(0, 0, 0, 0.4); }
+  :is(.dark [data-theme-palette="spring"],    .dark[data-theme-palette="spring"])    { --theme-bg:#1f2620; --theme-blush:#3a2b30; --theme-accent:#a9c9a6; --theme-clay:#e0a1b4; --theme-warm:#5a3a44; --theme-line:#4d4a45; }
+  :is(.dark [data-theme-palette="summer"],    .dark[data-theme-palette="summer"])    { --theme-bg:#22241c; --theme-blush:#3d3423; --theme-accent:#b7cf98; --theme-clay:#e0ae6c; --theme-warm:#5c4a28; --theme-line:#4f4a3d; }
+  :is(.dark [data-theme-palette="autumn"],    .dark[data-theme-palette="autumn"])    { --theme-bg:#202821; --theme-blush:#3b3029; --theme-accent:#aac5a4; --theme-clay:#d5997a; --theme-warm:#593e2e; --theme-line:#5a5146; }
+  :is(.dark [data-theme-palette="winter"],    .dark[data-theme-palette="winter"])    { --theme-bg:#1c2326; --theme-blush:#27333a; --theme-accent:#a5c8cb; --theme-clay:#9fbacb; --theme-warm:#30474f; --theme-line:#47525a; }
+  :is(.dark [data-theme-palette="halloween"], .dark[data-theme-palette="halloween"]) { --theme-bg:#211d1a; --theme-blush:#3b2a1f; --theme-accent:#c3cdb5; --theme-clay:#ec8d4c; --theme-warm:#61391a; --theme-line:#55493e; }
+  :is(.dark [data-theme-palette="christmas"], .dark[data-theme-palette="christmas"]) { --theme-bg:#1d2420; --theme-blush:#382a2a; --theme-accent:#a8c9b1; --theme-clay:#e08a8f; --theme-warm:#5a3330; --theme-line:#524944; }
+
+  /* Фон Hero: у сезонных тем — тёплый градиент, у базовой остаётся mesh-gradient. */
+  .hero-theme[data-theme-palette]:not([data-theme-palette="default"]) {
+    background: linear-gradient(120deg, var(--theme-bg) 35%, color-mix(in srgb, var(--theme-blush) 38%, var(--theme-bg)));
+  }
+
+  /* ── Секции главной в палитре темы ────────────────────────────── */
+  /* Тёплая полоса — как градиент Hero, но спокойнее. У базовой темы
+     blush = фон, поэтому полоса просто однотонная. */
+  .season-band {
+    background: linear-gradient(120deg, var(--theme-bg) 20%, color-mix(in srgb, var(--theme-blush) 75%, var(--theme-bg)));
+  }
+  .season-band-soft {
+    background: linear-gradient(300deg, var(--theme-bg) 30%, color-mix(in srgb, var(--theme-blush) 40%, var(--theme-bg)));
+  }
+  .season-divider { border-color: color-mix(in srgb, var(--theme-clay) 16%, transparent); }
+
+  /* Оттенки карточек (поводы и т.п.) из палитры сезонной темы.
+     У базовой темы остаются собственные цвета карточек. */
+  :root[data-theme-palette]:not([data-theme-palette="default"]) .season-tint-1 {
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--theme-warm) 70%, var(--theme-bg)), color-mix(in srgb, var(--theme-warm) 30%, var(--theme-bg)));
+    border-color: color-mix(in srgb, var(--theme-clay) 18%, transparent);
+  }
+  :root[data-theme-palette]:not([data-theme-palette="default"]) .season-tint-2 {
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--theme-blush) 95%, var(--theme-bg)), color-mix(in srgb, var(--theme-blush) 45%, var(--theme-bg)));
+    border-color: color-mix(in srgb, var(--theme-clay) 18%, transparent);
+  }
+  :root[data-theme-palette]:not([data-theme-palette="default"]) .season-tint-3 {
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--theme-clay) 18%, var(--theme-bg)), color-mix(in srgb, var(--theme-clay) 7%, var(--theme-bg)));
+    border-color: color-mix(in srgb, var(--theme-clay) 22%, transparent);
+  }
+  :root[data-theme-palette]:not([data-theme-palette="default"]) .season-tint-4 {
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 14%, var(--theme-bg)), color-mix(in srgb, var(--theme-accent) 5%, var(--theme-bg)));
+    border-color: color-mix(in srgb, var(--theme-accent) 20%, transparent);
+  }
+
+  .season-eyebrow,
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--theme-clay);
+  }
+  .season-eyebrow::before,
+  .hero-eyebrow::before {
+    content: "";
+    width: 1.5rem;
+    height: 1px;
+    background: currentColor;
+  }
+
+  /* Слой с букетом. --tilt-x/--tilt-y ∈ [-1, 1] задаются из JS. */
+  .hero-art {
+    --tilt-x: 0;
+    --tilt-y: 0;
+    position: relative;
+    perspective: 1100px;
+  }
+  /* Размер области картинки на сайте.
+     Авто: ширина колонки, высота 250 / 360 / min(560px, 60vh).
+     С пропорцией (одна на все экраны): aspect-ratio + ширина ограничена
+     так, чтобы высота не превышала 420 / 480 / min(580px, 68vh). */
+  .hero-art--sized .hero-art__frame { height: 250px; }
+  .hero-art--ratio {
+    width: min(100%, calc(420px * var(--theme-ratio)));
+    margin-inline: auto;
+  }
+  .hero-art.hero-art--ratio .hero-art__frame { height: auto; aspect-ratio: var(--theme-ratio); }
+  @media (min-width: 640px) {
+    .hero-art--sized .hero-art__frame { height: 360px; }
+    .hero-art--ratio { width: min(100%, calc(480px * var(--theme-ratio))); }
+  }
+  @media (min-width: 1024px) {
+    .hero-art--sized .hero-art__frame { height: min(560px, 60vh); }
+    .hero-art--ratio { width: min(100%, calc(min(580px, 68vh) * var(--theme-ratio))); }
+  }
+
+  .hero-art__glow {
+    position: absolute;
+    inset: 8% -10% 10% -8%;
+    background: radial-gradient(ellipse, color-mix(in srgb, var(--theme-warm) 75%, transparent), transparent 68%);
+    transform: translate(calc(var(--tilt-x) * -5px), calc(var(--tilt-y) * -4px));
+    transition: transform 0.3s ease-out;
+    pointer-events: none;
+  }
+  .hero-art__arch {
+    position: absolute;
+    left: 15%;
+    right: 8%;
+    top: 10%;
+    bottom: 14%;
+    border: 1px solid color-mix(in srgb, var(--theme-clay) 22%, transparent);
+    border-radius: 48% 48% 4px 4px;
+    transform: translate(calc(var(--tilt-x) * -5px), calc(var(--tilt-y) * -4px)) rotate(-7deg);
+    transition: transform 0.3s ease-out;
+    pointer-events: none;
+  }
+  .hero-art__subject {
+    position: relative;
+    z-index: 1;
+    transform:
+      translate3d(calc(var(--tilt-x) * 9px), calc(var(--tilt-y) * 7px), 0)
+      rotateX(calc(var(--tilt-y) * -2.5deg))
+      rotateY(calc(var(--tilt-x) * 3deg));
+    transition: transform 0.3s ease-out;
+  }
+  .hero-art--decor .hero-art__subject img {
+    filter: drop-shadow(0 21px 17px var(--theme-shadow));
+  }
+  .hero-art__signature {
+    position: absolute;
+    left: 0;
+    bottom: 1%;
+    z-index: 2;
+    color: var(--theme-clay);
+    transform: rotate(-4deg);
+    pointer-events: none;
+  }
+  .hero-art__signature span {
+    display: block;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+  .hero-art__signature strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.125rem, 2vw, 1.5rem);
+  }
+  @media (max-width: 639px) {
+    .hero-art__signature { bottom: -2%; }
+    .hero-art__signature span { font-size: 0.625rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-art__glow,
+    .hero-art__arch,
+    .hero-art__subject {
+      transform: none !important;
+      transition: none;
+    }
+  }
+
   .dark .mesh-gradient {
     background-color: #1a1518;
     background-image:
@@ -228,4 +416,132 @@
 
 .animate-delay-500 {
   animation-delay: 500ms;
+}
+/* ── Эффект объёма карточки товара (src/components/DepthImage.tsx) ──
+   Inline-transform пишет JS только для активной карточки под мышью.
+   Пустой inline-transform → слои возвращаются к правилам ниже. */
+.depth-bg,
+.depth-fg {
+  transition: transform var(--depth-return, 350ms) cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.depth-stage[data-active] .depth-bg,
+.depth-stage[data-active] .depth-fg {
+  transition-duration: var(--depth-enter, 250ms);
+  will-change: transform;
+}
+
+/* Слой товара: в покое обрезан по фото со скруглением, в активном
+   состоянии выступает вверх и в стороны (но не вниз, на текст карточки). */
+.depth-fg-clip {
+  clip-path: inset(0 0 0 0 round var(--depth-radius, 0px));
+  transition: clip-path var(--depth-return, 350ms) ease-out;
+}
+
+.depth-stage[data-active] .depth-fg-clip,
+.group:focus-visible .depth-fg-clip {
+  clip-path: inset(
+    calc(-1 * var(--depth-overflow, 16px)) calc(-1 * var(--depth-overflow, 16px)) 0
+      calc(-1 * var(--depth-overflow, 16px)) round 0px
+  );
+  transition-duration: var(--depth-enter, 250ms);
+}
+
+.depth-shadow {
+  opacity: 0;
+  filter: brightness(0) blur(10px);
+  transform: translateY(10px) scale(0.98);
+  transition: opacity var(--depth-return, 350ms) ease-out;
+}
+
+.depth-stage[data-active] .depth-shadow {
+  opacity: var(--depth-shadow-opacity, 0.28);
+  transition-duration: var(--depth-enter, 250ms);
+}
+
+/* Фокус с клавиатуры: фиксированный мягкий эффект без отслеживания курсора */
+.group:focus-visible .depth-fg {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.group:focus-visible .depth-shadow {
+  opacity: calc(var(--depth-shadow-opacity, 0.28) * 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .depth-bg,
+  .depth-fg {
+    transform: none !important;
+    transition: none;
+  }
+
+  .depth-shadow {
+    display: none;
+  }
+
+  .depth-fg-clip {
+    clip-path: inset(0 0 0 0 round var(--depth-radius, 0px)) !important;
+  }
+}
+
+/* ── Карточка цветка в конструкторе букета (src/components/BouquetFlowerCard.tsx) ──
+   Наклон приходит из JS в CSS-переменные; состояние покоя — нули ниже. */
+.bq-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --fx: 0px;
+  --fy: 0px;
+  --frx: 0deg;
+  --fry: 0deg;
+  --fz: 0px;
+  --zoom: 1;
+  --lift: 0px;
+  perspective: 900px;
+  isolation: isolate;
+}
+
+.bq-paper {
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  box-shadow: 0 12px 32px hsl(30 30% 20% / 0.12);
+  transition: transform 0.22s ease-out, box-shadow 0.35s;
+}
+
+.bq-halo {
+  background: radial-gradient(ellipse at 50% 42%, hsl(var(--secondary) / 0.45), transparent 70%);
+}
+
+.bq-flower {
+  z-index: 2;
+  transform: translate3d(var(--fx), calc(var(--fy) + var(--lift)), var(--fz)) rotateX(var(--frx))
+    rotateY(var(--fry)) scale(var(--zoom));
+  transform-origin: 50% 72%;
+  filter: drop-shadow(0 8px 5px hsl(30 40% 20% / 0.08));
+  transition: transform 0.22s ease-out, filter 0.35s;
+}
+
+.bq-card.bq-active {
+  --fz: 60px;
+  --zoom: 1.12;
+  --lift: -20px;
+}
+
+.bq-active .bq-paper {
+  box-shadow: 0 24px 48px hsl(30 30% 20% / 0.2);
+}
+
+.bq-active .bq-flower {
+  filter: drop-shadow(0 22px 12px hsl(30 40% 20% / 0.19));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bq-paper,
+  .bq-flower {
+    transition: none;
+  }
+
+  .bq-card.bq-active {
+    --fz: 0px;
+    --zoom: 1.03;
+    --lift: -6px;
+  }
 }

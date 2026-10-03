@@ -27,12 +27,16 @@ import { readImageDimensions } from "@/utils/imageCompression";
 import { checkAspect } from "@/utils/aspectRatio";
 import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
 import { FocalPointPicker, FocalPoint } from "@/components/admin/FocalPointPicker";
+import { DepthEffectEditor, DepthEffectDraft, emptyDepthDraft } from "@/components/admin/DepthEffectEditor";
 import {
   getProductById,
   getAllCategories,
   addProduct,
   updateProduct,
-  Product
+  uploadProductDepthLayer,
+  deleteProductDepthLayer,
+  Product,
+  ProductDepthEffect
 } from "@/firebase/services";
 
 // Определение интерфейса Product для решения проблемы с импортом
@@ -62,7 +66,11 @@ export default function ProductForm() {
   const [focalPoint, setFocalPoint] = useState<FocalPoint | undefined>(undefined);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState<string>("");
-  
+  // Эффект объёма: черновик в форме и сохранённое состояние (чтобы удалить
+  // из Storage слои, которые админ убрал).
+  const [depthDraft, setDepthDraft] = useState<DepthEffectDraft>(emptyDepthDraft());
+  const [savedDepth, setSavedDepth] = useState<ProductDepthEffect | undefined>(undefined);
+
   // Форма продукта
   const [productData, setProductData] = useState<Partial<Product>>({
     name: "",
@@ -113,6 +121,8 @@ export default function ProductForm() {
             setTags(product.tags || []);
             setImagePreview(product.imageUrl);
             if (product.imageFocalPoint) setFocalPoint(product.imageFocalPoint);
+            setDepthDraft(emptyDepthDraft(product.depthEffect));
+            setSavedDepth(product.depthEffect);
           } else {
             toast.error("Produkt nebyl nalezen");
             navigate("/admin/products");
@@ -231,6 +241,31 @@ export default function ProductForm() {
     }));
   };
 
+  // Слои эффекта объёма: загружаем новые файлы, удаляем из Storage убранные.
+  // Возвращает итоговые настройки для записи в документ товара или
+  // undefined, если эффект никогда не настраивался (поле не трогаем).
+  const saveDepthLayers = async (productId: string): Promise<ProductDepthEffect | undefined> => {
+    const { settings, foregroundFile, backgroundFile } = depthDraft;
+    const touched =
+      settings.enabled || foregroundFile || backgroundFile ||
+      settings.foregroundUrl || settings.backgroundUrl || savedDepth;
+    if (!touched) return undefined;
+
+    const next: ProductDepthEffect = { ...settings };
+    const layers = [
+      { layer: "foreground", file: foregroundFile, urlKey: "foregroundUrl" },
+      { layer: "background", file: backgroundFile, urlKey: "backgroundUrl" },
+    ] as const;
+    for (const { layer, file, urlKey } of layers) {
+      if (file) {
+        next[urlKey] = await uploadProductDepthLayer(productId, layer, file);
+      } else if (!next[urlKey] && savedDepth?.[urlKey]) {
+        await deleteProductDepthLayer(productId, layer);
+      }
+    }
+    return next;
+  };
+
   // Сохранение продукта
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,10 +286,14 @@ export default function ProductForm() {
       };
 
       if (isEditing && id) {
-        await updateProduct(id, dataToSave, imageFile || undefined);
+        const depthEffect = await saveDepthLayers(id);
+        await updateProduct(id, { ...dataToSave, depthEffect }, imageFile || undefined);
         toast.success("Produkt byl úspěšně aktualizován");
       } else {
-        await addProduct(dataToSave as Omit<Product, 'id'>, imageFile || undefined);
+        const newId = await addProduct(dataToSave as Omit<Product, 'id'>, imageFile || undefined);
+        // Слои кладутся по id товара, поэтому загружаются после создания.
+        const depthEffect = await saveDepthLayers(newId);
+        if (depthEffect) await updateProduct(newId, { depthEffect });
         toast.success("Produkt byl úspěšně přidán");
       }
       
@@ -598,6 +637,25 @@ export default function ProductForm() {
                 </CardContent>
               </Card>
               
+              {/* Эффект объёма для карточки товара */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Efekt hloubky</CardTitle>
+                  <CardDescription>
+                    Při najetí myší se pozadí nakloní a produkt vystoupí z fotografie
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <DepthEffectEditor
+                    value={depthDraft}
+                    onChange={setDepthDraft}
+                    productName={productData.name || ""}
+                    imageUrl={imagePreview}
+                    focalPoint={focalPoint}
+                  />
+                </CardContent>
+              </Card>
+
               {/* Дополнительные опции */}
               <Card className="mt-6">
                 <CardHeader>

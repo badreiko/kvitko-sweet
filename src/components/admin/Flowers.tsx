@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from "react";
+import { FC, useState, useEffect, useMemo } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,16 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
 import { FocalPointPicker, FocalPoint } from "@/components/admin/FocalPointPicker";
+import {
+  FlowerTypeField,
+  collectCustomFlowerTypes,
+  flowerTypeLabel,
+  normalizeFlowerType,
+} from "@/components/admin/FlowerTypeField";
+import { FlowerColorField, colorSwatchCss } from "@/components/admin/FlowerColorField";
 import { X } from "lucide-react";
 import {
   Flower as FlowerType,
@@ -42,14 +48,26 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { compressImage, readImageDimensions, formatFileSize } from "@/utils/imageCompression";
 import { checkAspect } from "@/utils/aspectRatio";
 
-// Типы цветов для выбора
-const flowerTypes = [
-  { value: "rose", label: "Роза" },
-  { value: "tulip", label: "Тюльпан" },
-  { value: "lily", label: "Лилия" },
-  { value: "orchid", label: "Орхидея" },
-  { value: "other", label: "Другое" }
-];
+// Пустая форма цветка. Одна фабрика для начального состояния и всех
+// сбросов — чтобы при повторном открытии не терялись поля по умолчанию
+// (раньше сброс забывал itemType и forCustomBouquet).
+const emptyFlower = (): Partial<FlowerType> => ({
+  name: {
+    cs: "", // Чешский (основной)
+    uk: "", // Украинский
+    en: "", // Английский
+    ru: ""  // Русский
+  },
+  latinName: "",
+  type: "other",
+  color: "",
+  price: 0,
+  inStock: true,
+  stockQuantity: 0,
+  description: "",
+  itemType: ItemType.FLOWER, // Вид элемента (по умолчанию - цветок)
+  forCustomBouquet: true // Элемент доступен в конструкторе букета
+});
 
 const flowerDialogContentClassName =
   "flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden sm:max-w-[640px]";
@@ -63,32 +81,17 @@ const Flowers: FC = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentFlower, setCurrentFlower] = useState<FlowerType | null>(null);
-  const [newFlower, setNewFlower] = useState<Partial<FlowerType>>({
-    name: {
-      cs: "", // Чешский (основной)
-      uk: "", // Украинский
-      en: "", // Английский
-      ru: ""  // Русский
-    },
-    latinName: "",
-    type: "other",
-    color: "",
-    price: 0,
-    inStock: true,
-    stockQuantity: 0,
-    description: "",
-    itemType: ItemType.FLOWER, // Добавляем поле для вида элемента (по умолчанию - цветок)
-    forCustomBouquet: true // Добавляем флаг, что элемент для букета
-  });
+  const [newFlower, setNewFlower] = useState<Partial<FlowerType>>(emptyFlower);
 
-  // Состояние для пользовательского типа цветка
-  const [customType, setCustomType] = useState<string>("");
-  const [isCustomType, setIsCustomType] = useState<boolean>(false);
+  // Свои типы, уже сохранённые у цветов, — пополняют список выбора типа
+  const customTypes = useMemo(() => collectCustomFlowerTypes(flowers), [flowers]);
 
   // Состояния для работы с файлами
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [focalPoint, setFocalPoint] = useState<FocalPoint | undefined>(undefined);
+  // Масштаб фото в окне конструктора букета (см. FramedImage)
+  const [imageZoom, setImageZoom] = useState<number | undefined>(undefined);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Загрузка цветов из Firestore
@@ -153,26 +156,6 @@ const Flowers: FC = () => {
     }
   };
 
-  // Обработчик для пользовательского типа цветка
-  const handleCustomTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCustomType(e.target.value);
-    if (isCustomType) {
-      setNewFlower(prev => ({ ...prev, type: e.target.value }));
-    }
-  };
-
-  // Переключение между выбором из списка и пользовательским типом
-  const toggleCustomType = () => {
-    setIsCustomType(!isCustomType);
-    if (!isCustomType) {
-      // Переключаемся на пользовательский тип
-      setNewFlower(prev => ({ ...prev, type: customType || '' }));
-    } else {
-      // Возвращаемся к выбору из списка
-      setNewFlower(prev => ({ ...prev, type: 'other' }));
-    }
-  };
-
   // Обработчик файла изображения с предпросмотром и проверкой пропорции
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!(e.target.files && e.target.files[0])) return;
@@ -197,6 +180,7 @@ const Flowers: FC = () => {
     setSelectedFile(null);
     setImagePreview(null);
     setFocalPoint(undefined);
+    setImageZoom(undefined);
     setNewFlower(prev => ({ ...prev, imageUrl: "" }));
   };
 
@@ -236,38 +220,25 @@ const Flowers: FC = () => {
   // Функция для открытия диалога добавления цветка
   const openAddDialog = () => {
     // Сбрасываем форму
-    setNewFlower({
-      name: {
-        cs: "", // Чешский (основной)
-        uk: "", // Украинский
-        en: "", // Английский
-        ru: ""  // Русский
-      },
-      latinName: "",
-      type: "other",
-      color: "",
-      price: 0,
-      inStock: true,
-      stockQuantity: 0,
-      description: ""
-    });
-
-    // Сбрасываем пользовательский тип
-    setCustomType("");
-    setIsCustomType(false);
+    setNewFlower(emptyFlower());
 
     // Сбрасываем выбранный файл
     setSelectedFile(null);
     setImagePreview(null);
     setFocalPoint(undefined);
+    setImageZoom(undefined);
     setUploadProgress(0);
 
     // Открываем диалог
     setIsAddDialogOpen(true);
   };
 
+  const handleColorChange = (color: string, colorHex: string | undefined) => {
+    setNewFlower(prev => ({ ...prev, color, colorHex }));
+  };
+
   const handleTypeChange = (value: string) => {
-    setNewFlower(prev => ({ ...prev, type: value as FlowerType["type"] }));
+    setNewFlower(prev => ({ ...prev, type: value }));
   };
 
   const handleSwitchChange = (checked: boolean) => {
@@ -286,7 +257,7 @@ const Flowers: FC = () => {
       console.log('Selected file:', selectedFile);
 
       // Проверка обязательных полей
-      if (!newFlower.name?.cs || !newFlower.type || !newFlower.color || newFlower.price === undefined || newFlower.price <= 0) {
+      if (!newFlower.name?.cs || !newFlower.type?.trim() || !newFlower.color || newFlower.price === undefined || newFlower.price <= 0) {
         toast.error("Заполните все обязательные поля");
         return;
       }
@@ -317,8 +288,8 @@ const Flowers: FC = () => {
         const flowerData = {
           ...newFlower,
           name: flowerName,
-          // Если используется пользовательский тип, убедимся, что он задан
-          type: isCustomType ? customType : newFlower.type
+          // Свой тип приводим к уже существующему написанию, чтобы не плодить дубли
+          type: normalizeFlowerType(newFlower.type || "", customTypes)
         } as Omit<FlowerType, 'id'>;
 
         console.log('Flower data to be added:', flowerData);
@@ -334,6 +305,7 @@ const Flowers: FC = () => {
           imageOrientation: orientation,
           imageAspectRatio: aspectRatio,
           imageFocalPoint: focalPoint,
+          imageZoom,
         });
 
         // Обновляем список цветов
@@ -342,30 +314,13 @@ const Flowers: FC = () => {
         console.log('Flowers list updated, new count:', updatedFlowers.length);
 
         // Сбрасываем форму
-        setNewFlower({
-          name: {
-            cs: "", // Чешский (основной)
-            uk: "", // Украинский
-            en: "", // Английский
-            ru: ""  // Русский
-          },
-          latinName: "",
-          type: "other",
-          color: "",
-          price: 0,
-          inStock: true,
-          stockQuantity: 0,
-          description: ""
-        });
-
-        // Сбрасываем пользовательский тип
-        setCustomType("");
-        setIsCustomType(false);
+        setNewFlower(emptyFlower());
 
         // Сбрасываем выбранный файл
         setSelectedFile(null);
         setImagePreview(null);
         setFocalPoint(undefined);
+        setImageZoom(undefined);
         setUploadProgress(0);
 
         setIsAddDialogOpen(false);
@@ -389,6 +344,7 @@ const Flowers: FC = () => {
     setSelectedFile(null);
     setImagePreview(flower.imageUrl || null);
     setFocalPoint(flower.imageFocalPoint);
+    setImageZoom(flower.imageZoom);
     setUploadProgress(0);
     setIsEditDialogOpen(true);
   };
@@ -396,7 +352,7 @@ const Flowers: FC = () => {
   // Сохранение изменений цветка
   const handleSaveFlower = async () => {
     try {
-      if (!currentFlower || !newFlower.name || !newFlower.color || newFlower.price === undefined || newFlower.price <= 0) {
+      if (!currentFlower || !newFlower.name || !newFlower.type?.trim() || !newFlower.color || newFlower.price === undefined || newFlower.price <= 0) {
         toast.error("Заполните все обязательные поля");
         return;
       }
@@ -414,11 +370,15 @@ const Flowers: FC = () => {
         };
       }
 
+      // id — ключ документа, а не его поле: в данные цветка не пишем
+      const { id: _docId, ...flowerFields } = newFlower;
       const flowerData: Partial<FlowerType> = {
-        ...newFlower,
+        ...flowerFields,
+        type: normalizeFlowerType(newFlower.type || "", customTypes),
         price: Number(newFlower.price),
         stockQuantity: Number(newFlower.stockQuantity || 0),
         imageFocalPoint: focalPoint,
+        imageZoom,
         ...imageUpdates,
         updatedAt: new Date()
       };
@@ -433,6 +393,7 @@ const Flowers: FC = () => {
       setSelectedFile(null);
       setImagePreview(null);
       setFocalPoint(undefined);
+      setImageZoom(undefined);
       setUploadProgress(0);
       setIsEditDialogOpen(false);
       toast.success("Цветок успешно обновлен");
@@ -570,46 +531,13 @@ const Flowers: FC = () => {
                     <Label htmlFor="type" className="text-right">
                       Тип*
                     </Label>
-                    <div className="col-span-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="custom-type-checkbox"
-                            checked={isCustomType}
-                            onCheckedChange={() => toggleCustomType()}
-                          />
-                          <Label htmlFor="custom-type-checkbox" className="cursor-pointer">
-                            Свой тип
-                          </Label>
-                        </div>
-                      </div>
-
-                      {isCustomType ? (
-                        <Input
-                          id="customType"
-                          name="customType"
-                          value={customType}
-                          onChange={handleCustomTypeChange}
-                          placeholder="Введите тип цветка"
-                          required
-                        />
-                      ) : (
-                        <Select
-                          value={newFlower.type}
-                          onValueChange={handleTypeChange}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите тип цветка" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {flowerTypes.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
+                    <div className="col-span-3">
+                      <FlowerTypeField
+                        id="type"
+                        value={newFlower.type || ""}
+                        onChange={handleTypeChange}
+                        customTypes={customTypes}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -630,18 +558,18 @@ const Flowers: FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="color" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="color" className="text-right pt-2">
                       Цвет*
                     </Label>
-                    <Input
-                      id="color"
-                      name="color"
-                      value={newFlower.color || ""}
-                      onChange={handleInputChange}
-                      className="col-span-3"
-                      required
-                    />
+                    <div className="col-span-3">
+                      <FlowerColorField
+                        id="color"
+                        color={newFlower.color || ""}
+                        colorHex={newFlower.colorHex}
+                        onChange={handleColorChange}
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="price" className="text-right">
@@ -748,6 +676,8 @@ const Flowers: FC = () => {
                           value={focalPoint}
                           onChange={setFocalPoint}
                           previewAspect="1 / 1"
+                          zoom={imageZoom}
+                          onZoomChange={setImageZoom}
                         />
                       )}
                     </div>
@@ -814,9 +744,19 @@ const Flowers: FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {flowerTypes.find(t => t.value === flower.type)?.label || flower.type}
+                        {flowerTypeLabel(flower.type)}
                       </TableCell>
-                      <TableCell>{flower.color}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-2">
+                          {colorSwatchCss(flower.color, flower.colorHex) && (
+                            <span
+                              className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/15"
+                              style={{ background: colorSwatchCss(flower.color, flower.colorHex) }}
+                            />
+                          )}
+                          {flower.color}
+                        </span>
+                      </TableCell>
                       <TableCell>{formatPrice(flower.price)}</TableCell>
                       <TableCell>
                         <span
@@ -915,21 +855,14 @@ const Flowers: FC = () => {
                                 <Label htmlFor="edit-type" className="text-right">
                                   Тип*
                                 </Label>
-                                <Select
-                                  value={newFlower.type}
-                                  onValueChange={handleTypeChange}
-                                >
-                                  <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Выберите тип цветка" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {flowerTypes.map((type) => (
-                                      <SelectItem key={type.value} value={type.value}>
-                                        {type.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <div className="col-span-3">
+                                  <FlowerTypeField
+                                    id="edit-type"
+                                    value={newFlower.type || ""}
+                                    onChange={handleTypeChange}
+                                    customTypes={customTypes}
+                                  />
+                                </div>
                               </div>
                               <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-itemType" className="text-right">
@@ -949,18 +882,18 @@ const Flowers: FC = () => {
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-color" className="text-right">
+                              <div className="grid grid-cols-4 items-start gap-4">
+                                <Label htmlFor="edit-color" className="text-right pt-2">
                                   Цвет*
                                 </Label>
-                                <Input
-                                  id="edit-color"
-                                  name="color"
-                                  value={newFlower.color || ""}
-                                  onChange={handleInputChange}
-                                  className="col-span-3"
-                                  required
-                                />
+                                <div className="col-span-3">
+                                  <FlowerColorField
+                                    id="edit-color"
+                                    color={newFlower.color || ""}
+                                    colorHex={newFlower.colorHex}
+                                    onChange={handleColorChange}
+                                  />
+                                </div>
                               </div>
                               <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-price" className="text-right">
@@ -1068,6 +1001,8 @@ const Flowers: FC = () => {
                                       value={focalPoint}
                                       onChange={setFocalPoint}
                                       previewAspect="1 / 1"
+                                      zoom={imageZoom}
+                                      onZoomChange={setImageZoom}
                                     />
                                   )}
                                 </div>

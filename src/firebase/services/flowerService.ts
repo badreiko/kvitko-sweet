@@ -35,6 +35,8 @@ export interface Flower {
   latinName?: string;
   type: string; // Теперь это просто строка, чтобы поддерживать пользовательские типы
   color: string;
+  /** Оттенок цвета (#RRGGBB) из палитры или свой — для образца в админке. */
+  colorHex?: string;
   price: number;
   inStock: boolean;
   stockQuantity: number;
@@ -43,6 +45,8 @@ export interface Flower {
   imageOrientation?: 'portrait' | 'landscape' | 'square';
   imageAspectRatio?: number;
   imageFocalPoint?: { x: number; y: number };
+  /** Масштаб фото в окне конструктора: 1 — заполнить, < 1 — уменьшить с полями. */
+  imageZoom?: number;
   itemType?: ItemType; // Вид элемента: цветок, упаковка или дополнение
   forCustomBouquet?: boolean; // Флаг, указывающий, что элемент используется для букетов
   createdAt?: Date;

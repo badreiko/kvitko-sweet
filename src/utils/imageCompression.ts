@@ -217,6 +217,24 @@ export async function compressProductImage(
 }
 
 /**
+ * Сжимает слой эффекта объёма (товар без фона или фон).
+ * Выход — WebP: в отличие от JPEG, прозрачность сохраняется. Качество выше,
+ * чем у обычного фото, чтобы края лепестков не обрастали артефактами.
+ */
+export async function compressProductLayer(
+    file: File,
+    onProgress?: (progress: number) => void
+): Promise<CompressionResult> {
+    return compressImage(file, {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1200,
+        quality: 0.9,
+        fileType: 'image/webp',
+        onProgress,
+    });
+}
+
+/**
  * Сжимает изображение с предустановленными параметрами для блога
  */
 export async function compressBlogImage(

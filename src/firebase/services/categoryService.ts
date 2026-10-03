@@ -28,6 +28,8 @@ export interface Category {
   imageOrientation?: ImageOrientation;
   imageAspectRatio?: number;
   imageFocalPoint?: { x: number; y: number };
+  /** Масштаб фото в плитке (1 — заполнить, < 1 — уменьшить с полями) — см. FramedImage. */
+  imageZoom?: number;
   parentId?: string;
   order?: number;
   isActive: boolean;

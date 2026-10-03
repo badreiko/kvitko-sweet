@@ -36,6 +36,12 @@ import {
   deleteCategory
 } from "@/firebase/services/categoryService";
 
+// Окно не выше экрана: форма прокручивается внутри, кнопки всегда видны
+const categoryDialogContentClassName =
+  "flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden sm:max-w-lg";
+const categoryDialogBodyClassName = "min-h-0 flex-1 space-y-4 overflow-y-auto py-4 pr-2";
+const categoryDialogFooterClassName = "shrink-0 border-t pt-4";
+
 const Categories: FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +59,8 @@ const Categories: FC = () => {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [focalPoint, setFocalPoint] = useState<FocalPoint | undefined>(undefined);
+  // Масштаб фото в плитке на главной (см. FramedImage)
+  const [imageZoom, setImageZoom] = useState<number | undefined>(undefined);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Загрузка категорий из Firestore
@@ -144,6 +152,7 @@ const Categories: FC = () => {
     setImageFile(null);
     setImagePreview(null);
     setFocalPoint(undefined);
+    setImageZoom(undefined);
     setNewCategory(prev => ({
       ...prev,
       imageUrl: ""
@@ -167,6 +176,7 @@ const Categories: FC = () => {
         order: newCategory.order ?? categories.length,
         isActive: newCategory.isActive === undefined ? true : newCategory.isActive,
         imageFocalPoint: focalPoint,
+        imageZoom,
       };
 
       const categoryId = await addCategory(categoryData as Omit<Category, 'id'>, imageFile || undefined);
@@ -191,6 +201,7 @@ const Categories: FC = () => {
       setImageFile(null);
       setImagePreview(null);
       setFocalPoint(undefined);
+      setImageZoom(undefined);
 
       setIsAddDialogOpen(false);
       toast.success("Категория успешно добавлена");
@@ -216,6 +227,7 @@ const Categories: FC = () => {
     setImageFile(null);
     setImagePreview(category.imageUrl || null);
     setFocalPoint(category.imageFocalPoint);
+    setImageZoom(category.imageZoom);
     setIsEditDialogOpen(true);
   };
 
@@ -236,6 +248,7 @@ const Categories: FC = () => {
         order: newCategory.order ?? 0,
         isActive: newCategory.isActive === undefined ? true : newCategory.isActive,
         imageFocalPoint: focalPoint,
+        imageZoom,
       };
 
       await updateCategory(currentCategory.id, categoryData, imageFile || undefined);
@@ -254,6 +267,7 @@ const Categories: FC = () => {
       setImageFile(null);
       setImagePreview(null);
       setFocalPoint(undefined);
+      setImageZoom(undefined);
       setIsEditDialogOpen(false);
       toast.success("Категория успешно обновлена");
     } catch (error) {
@@ -297,6 +311,7 @@ const Categories: FC = () => {
               setImageFile(null);
               setImagePreview(null);
               setFocalPoint(undefined);
+              setImageZoom(undefined);
             }
           }}>
             <DialogTrigger asChild>
@@ -305,14 +320,14 @@ const Categories: FC = () => {
                 Добавить категорию
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className={categoryDialogContentClassName}>
               <DialogHeader>
                 <DialogTitle>Добавить новую категорию</DialogTitle>
                 <DialogDescription>
                   Заполните данные для новой категории товаров
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className={categoryDialogBodyClassName}>
                 <div className="space-y-2">
                   <Label htmlFor="name">Название категории</Label>
                   <Input
@@ -386,6 +401,10 @@ const Categories: FC = () => {
                       value={focalPoint}
                       onChange={setFocalPoint}
                       previewAspect="1 / 1"
+                      zoom={imageZoom}
+                      onZoomChange={setImageZoom}
+                      previewClassName="bg-muted/30"
+                      previewLabel="Так плитка будет выглядеть на главной"
                     />
                   )}
                   {!imagePreview && (
@@ -417,7 +436,7 @@ const Categories: FC = () => {
                   />
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className={categoryDialogFooterClassName}>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Отмена
                 </Button>
@@ -540,14 +559,14 @@ const Categories: FC = () => {
 
         {/* Диалог редактирования категории */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className={categoryDialogContentClassName}>
             <DialogHeader>
               <DialogTitle>Редактировать категорию</DialogTitle>
               <DialogDescription>
                 Измените данные категории
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className={categoryDialogBodyClassName}>
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Название категории</Label>
                 <Input
@@ -621,6 +640,10 @@ const Categories: FC = () => {
                     value={focalPoint}
                     onChange={setFocalPoint}
                     previewAspect="1 / 1"
+                    zoom={imageZoom}
+                    onZoomChange={setImageZoom}
+                    previewClassName="bg-muted/30"
+                    previewLabel="Так плитка будет выглядеть на главной"
                   />
                 )}
               </div>
@@ -644,7 +667,7 @@ const Categories: FC = () => {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className={categoryDialogFooterClassName}>
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Отмена
               </Button>

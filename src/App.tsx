@@ -4,11 +4,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   BrowserRouter,
   Routes,
-  Route
+  Route,
+  Navigate
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { BlogProvider } from "./context/BlogContext";
+import { SiteThemeProvider } from "./context/SiteThemeContext";
 import SmoothScroll from "./components/SmoothScroll";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { StickyMobileCTA } from "./components/StickyMobileCTA";
@@ -46,7 +48,6 @@ const Reports = lazy(() => import("./components/admin/Reports"));
 const SlugMigration = lazy(() => import("@/components/admin/SlugMigration"));
 const Categories = lazy(() => import("./components/admin/Categories"));
 const Flowers = lazy(() => import("./components/admin/Flowers"));
-const BouquetFlowers = lazy(() => import("./components/admin/BouquetFlowers"));
 const Blog = lazy(() => import("./components/admin/Blog"));
 const BlogPosts = lazy(() => import("./components/admin/BlogPosts"));
 const BlogTags = lazy(() => import("./components/admin/BlogTags"));
@@ -112,7 +113,9 @@ const router = (
         <Route path="/admin/products/edit/:id" element={<ProtectedRoute adminOnly><ProductForm /></ProtectedRoute>} />
         <Route path="/admin/categories" element={<ProtectedRoute adminOnly><Categories /></ProtectedRoute>} />
         <Route path="/admin/flowers" element={<ProtectedRoute adminOnly><Flowers /></ProtectedRoute>} />
-        <Route path="/admin/bouquet-flowers" element={<ProtectedRoute adminOnly><BouquetFlowers /></ProtectedRoute>} />
+        {/* Старый раздел писал в коллекцию bouquetFlowers, которую конструктор
+            не читает. Единый источник для /custom-bouquet — /admin/flowers. */}
+        <Route path="/admin/bouquet-flowers" element={<Navigate to="/admin/flowers" replace />} />
         <Route path="/admin/orders" element={<ProtectedRoute adminOnly><Orders /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
         <Route path="/admin/blog" element={<ProtectedRoute adminOnly><Blog /></ProtectedRoute>} />
@@ -141,12 +144,14 @@ export default function App() {
       <SmoothScroll>
         <AuthProvider>
           <CartProvider>
+            <SiteThemeProvider>
             <BlogProvider>
               <ErrorBoundary>
                 <Toaster position="top-right" />
                 {router}
               </ErrorBoundary>
             </BlogProvider>
+            </SiteThemeProvider>
           </CartProvider>
         </AuthProvider>
       </SmoothScroll>

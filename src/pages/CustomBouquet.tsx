@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { decodeStems } from "@/lib/bouquetAtelier";
 import { FlowerForBouquet, getAllFlowersForBouquet, ItemType } from "@/firebase/services/bouquetFlowerService";
+import { FramedImage } from "@/components/FramedImage";
+import { BouquetFlowerCard } from "@/components/BouquetFlowerCard";
+import { findPaletteColor } from "@/lib/flowerPalette";
 import { ArrowRight, ArrowLeft, Check, Flower, Plus, Minus, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -74,6 +79,19 @@ const additionalItems = [
 type SelectedFlower = { id: string; quantity: number };
 type SelectedAdditionalItem = { id: string; quantity: number };
 
+// В конструктор попадают только элементы для букетов, которые есть в наличии
+// (флаги из /admin/flowers). Количество на складе 0 при «В наличии» считаем
+// «не отслеживается» — так форма админки сохраняет новые цветы по умолчанию.
+const isAvailableForBouquet = (el: FlowerForBouquet) =>
+  el.forCustomBouquet !== false && el.inStock !== false;
+
+/** Сколько штук можно выбрать: остаток на складе, если он отслеживается. */
+const maxQuantity = (el?: FlowerForBouquet) =>
+  el && typeof el.stockQuantity === 'number' && el.stockQuantity > 0 ? el.stockQuantity : Infinity;
+
+/** Название цвета для покупателя: по палитре (по-чешски), иначе как записано. */
+const colorLabel = (color?: string) => findPaletteColor(color)?.name ?? color?.trim();
+
 // Helper function to get display name from various formats
 const getDisplayName = (name: unknown): string => {
   if (typeof name === 'string') return name;
@@ -98,13 +116,21 @@ export default function CustomBouquet() {
   const [loadingElements, setLoadingElements] = useState(true);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [pendingBouquetDetails, setPendingBouquetDetails] = useState<any>(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const fetchBouquetElements = async () => {
       try {
         setLoadingElements(true);
         const availableElements = await getAllFlowersForBouquet();
-        setBouquetElements(availableElements);
+        const available = availableElements.filter(isAvailableForBouquet);
+        setBouquetElements(available);
+        // Букет, собранный в «Ateliér» на главной: ?flowers=id:2,id2:1
+        const preset = decodeStems(searchParams.get('flowers'))
+          .map(item => ({ item, flower: available.find(el => el.id === item.id && el.itemType === ItemType.FLOWER) }))
+          .filter(({ flower }) => flower)
+          .map(({ item, flower }) => ({ id: item.id, quantity: Math.min(item.quantity, maxQuantity(flower)) }));
+        if (preset.length) setSelectedFlowers(preset);
       } catch (error) {
         console.error('CustomBouquet: Error fetching elements:', error);
       } finally {
@@ -295,7 +321,8 @@ export default function CustomBouquet() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 pb-8">
+                      {/* gap-y и pt — место для цветка, который при наведении выходит над карточкой */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-5 gap-y-10 pt-6 pb-8">
                         {loadingElements ? (
                           <div className="col-span-full flex flex-col items-center justify-center py-20">
                             <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
@@ -309,24 +336,21 @@ export default function CustomBouquet() {
                           bouquetElements.filter(el => el.itemType === ItemType.FLOWER).map(flower => {
                             const qty = getFlowerQuantity(flower.id);
                             const name = getDisplayName(flower.name);
+                            const max = maxQuantity(flower);
                             return (
-                              <div
+                              // Из карточки цветка выводятся только фото (с кадрированием),
+                              // цвет, название, описание и цена — служебные поля остаются в админке
+                              <BouquetFlowerCard
                                 key={flower.id}
-                                className={`group relative bg-background rounded-2xl border transition-all duration-300 overflow-hidden ${qty > 0 ? 'border-primary shadow-md ring-1 ring-primary/20' : 'border-border/50 hover:border-primary/50 shadow-sm hover:shadow-md'}`}
+                                imageUrl={flower.imageUrl || `https://via.placeholder.com/300?text=${encodeURIComponent(name)}`}
+                                name={name}
+                                label={colorLabel(flower.color)}
+                                description={flower.description?.trim()}
+                                price={flower.price}
+                                focalPoint={flower.imageFocalPoint}
+                                zoom={flower.imageZoom}
+                                selected={qty > 0}
                               >
-                                <div className="aspect-square overflow-hidden bg-muted">
-                                  <img
-                                    src={flower.imageUrl || `https://via.placeholder.com/300?text=${encodeURIComponent(name)}`}
-                                    alt={name}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                  />
-                                </div>
-                                <div className="p-4 bg-background/95 backdrop-blur-sm z-10 relative">
-                                  <div className="flex justify-between items-start mb-4">
-                                    <h3 className="font-medium text-foreground">{name}</h3>
-                                    <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{flower.price} Kč</span>
-                                  </div>
-
                                   <div className="flex items-center justify-between bg-muted/50 rounded-full p-1 border border-border/50">
                                     <Button
                                       variant="ghost"
@@ -342,13 +366,13 @@ export default function CustomBouquet() {
                                       variant="ghost"
                                       size="icon"
                                       className="h-8 w-8 rounded-full hover:bg-background hover:text-primary"
-                                      onClick={() => handleFlowerChange(flower.id, qty + 1)}
+                                      onClick={() => handleFlowerChange(flower.id, Math.min(max, qty + 1))}
+                                      disabled={qty >= max}
                                     >
                                       <Plus className="h-4 w-4" />
                                     </Button>
                                   </div>
-                                </div>
-                              </div>
+                              </BouquetFlowerCard>
                             );
                           })
                         )}
@@ -385,11 +409,14 @@ export default function CustomBouquet() {
                                 onClick={() => setSelectedWrapping(wrapping.id)}
                                 className={`cursor-pointer group relative bg-background rounded-2xl border transition-all duration-300 overflow-hidden flex flex-row items-center p-3 gap-4 ${isSelected ? 'border-primary shadow-md ring-1 ring-primary/20 bg-primary/5' : 'border-border/50 hover:border-primary/50 shadow-sm hover:shadow-md'}`}
                               >
-                                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-muted shrink-0 relative">
-                                  <img
+                                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-white shrink-0 relative">
+                                  <FramedImage
                                     src={wrapping.imageUrl || `https://via.placeholder.com/300?text=${encodeURIComponent(name)}`}
                                     alt={name}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    focalPoint={wrapping.imageFocalPoint}
+                                    zoom={wrapping.imageZoom}
+                                    className="absolute inset-0"
+                                    imgClassName="transition-transform duration-700 group-hover:scale-105"
                                   />
                                   {isSelected && (
                                     <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[1px]">
@@ -442,11 +469,14 @@ export default function CustomBouquet() {
 
                                 return (
                                   <div key={addition.id} className={`group relative bg-background rounded-2xl border transition-all duration-300 overflow-hidden flex flex-row items-center p-3 gap-4 ${qty > 0 ? 'border-primary shadow-md ring-1 ring-primary/20' : 'border-border/50 hover:border-primary/50 shadow-sm hover:shadow-md'}`}>
-                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-muted shrink-0 relative">
-                                      <img
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-white shrink-0 relative">
+                                      <FramedImage
                                         src={addition.imageUrl || `https://via.placeholder.com/300?text=${encodeURIComponent(name)}`}
                                         alt={name}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                        focalPoint={addition.imageFocalPoint}
+                                        zoom={addition.imageZoom}
+                                        className="absolute inset-0"
+                                        imgClassName="transition-transform duration-700 group-hover:scale-105"
                                       />
                                     </div>
                                     <div className="flex-1 flex flex-col justify-between h-full py-1">
@@ -459,7 +489,7 @@ export default function CustomBouquet() {
                                           <Minus className="h-3 w-3" />
                                         </Button>
                                         <span className={`text-sm font-medium ${qty > 0 ? 'text-primary' : ''}`}>{qty}</span>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-full hover:bg-background" onClick={() => handleAdditionalItemChange(addition.id, qty + 1)}>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-full hover:bg-background" onClick={() => handleAdditionalItemChange(addition.id, Math.min(maxQuantity(addition), qty + 1))} disabled={qty >= maxQuantity(addition)}>
                                           <Plus className="h-3 w-3" />
                                         </Button>
                                       </div>

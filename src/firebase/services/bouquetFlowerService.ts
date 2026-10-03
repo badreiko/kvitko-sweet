@@ -30,6 +30,9 @@ export interface FlowerForBouquet {
   color: string;
   price: number;
   imageUrl?: string;
+  /** Кадрирование фото из админки (/admin/flowers) — см. FramedImage. */
+  imageFocalPoint?: { x: number; y: number };
+  imageZoom?: number;
   description?: string;
   stockQuantity?: number;
   inStock?: boolean;

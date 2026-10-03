@@ -11,6 +11,16 @@ module.exports = {
 				serif: ['"Playfair Display"', 'serif'],
 			},
 			colors: {
+				// Цвета текущей сезонной темы (см. --theme-* в index.css).
+				season: {
+					accent: "var(--theme-accent)",
+					clay: "var(--theme-clay)",
+					bg: "var(--theme-bg)",
+					blush: "var(--theme-blush)",
+					warm: "var(--theme-warm)",
+					soft: "var(--theme-soft)",
+					line: "var(--theme-line)",
+				},
 				border: "hsl(var(--border))",
 				input: "hsl(var(--input))",
 				ring: "hsl(var(--ring))",

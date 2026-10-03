@@ -15,8 +15,27 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config';
-import { compressProductImage, formatFileSize, ImageOrientation } from '@/utils/imageCompression';
+import { compressProductImage, compressProductLayer, formatFileSize, ImageOrientation } from '@/utils/imageCompression';
 import { slugify } from '@/utils/slugify';
+
+/**
+ * Эффект объёма для карточки товара: фон и вырезанный товар отдельными слоями.
+ * Без foregroundUrl (или при enabled = false) карточка показывает обычное фото.
+ */
+export interface ProductDepthEffect {
+  enabled: boolean;
+  /** Товар без фона (WebP с прозрачностью), в том же кадре, что и фон. */
+  foregroundUrl?: string;
+  /** Фон с восстановленным местом под товаром. Если нет — используется backgroundColor. */
+  backgroundUrl?: string;
+  /** CSS-цвет или градиент для фона без изображения. */
+  backgroundColor?: string;
+  /** Индивидуальная коррекция слоя товара относительно фона. */
+  fgScale?: number;
+  /** Смещение слоя товара в % от ширины/высоты области фото. */
+  fgOffsetX?: number;
+  fgOffsetY?: number;
+}
 
 // Определение интерфейса Product
 export interface Product {
@@ -47,6 +66,7 @@ export interface Product {
    * Пример: ['birthday', 'thanks', 'general']
    */
   occasions?: string[];
+  depthEffect?: ProductDepthEffect;
   createdAt: Date;
 }
 
@@ -302,6 +322,38 @@ export const updateProduct = async (
   }
 };
 
+export type ProductDepthLayer = 'foreground' | 'background';
+
+const depthLayerPath = (productId: string, layer: ProductDepthLayer) =>
+  `products/${productId}-${layer === 'foreground' ? 'fg' : 'bg'}.webp`;
+
+// Загрузка слоя эффекта объёма (товар без фона / фон). Возвращает URL с
+// cache-busting версией. WebP сохраняет прозрачность слоя товара.
+export const uploadProductDepthLayer = async (
+  productId: string,
+  layer: ProductDepthLayer,
+  file: File
+): Promise<string> => {
+  const compressed = await compressProductLayer(file);
+  console.log(`[ProductService] Слой ${layer}: ${formatFileSize(compressed.compressedSize)}`);
+  const layerRef = ref(storage, depthLayerPath(productId, layer));
+  await uploadBytes(layerRef, compressed.file);
+  const baseUrl = await getDownloadURL(layerRef);
+  return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+};
+
+// Удаление слоя эффекта объёма. Отсутствие файла — не ошибка.
+export const deleteProductDepthLayer = async (
+  productId: string,
+  layer: ProductDepthLayer
+): Promise<void> => {
+  try {
+    await deleteObject(ref(storage, depthLayerPath(productId, layer)));
+  } catch {
+    console.log(`[ProductService] Нет слоя ${layer} для удаления`);
+  }
+};
+
 // Удаление продукта (для админа)
 export const deleteProduct = async (productId: string): Promise<void> => {
   try {
@@ -316,6 +368,9 @@ export const deleteProduct = async (productId: string): Promise<void> => {
       // Игнорируем ошибку, если изображения нет
       console.log('No image to delete or error: ', error);
     }
+
+    await deleteProductDepthLayer(productId, 'foreground');
+    await deleteProductDepthLayer(productId, 'background');
   } catch (error) {
     console.error('Error deleting product: ', error);
     throw error;

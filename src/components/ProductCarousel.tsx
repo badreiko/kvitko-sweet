@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Product } from "@/firebase/services/productService";
 import { ProductCard } from "./ProductCard";
 
@@ -7,27 +7,42 @@ interface ProductCarouselProps {
     products: Product[];
 }
 
+/**
+ * Карусель товаров для компьютера/планшета: ровно 4 (lg) или 3 (md) полные
+ * карточки в ширину контейнера, листание стрелками, колесом/тачпадом и
+ * свайпом (нативная прокрутка со snap). Без затемнения краёв — раньше
+ * крайняя карточка пряталась под градиентом.
+ */
 export function ProductCarousel({ products }: ProductCarouselProps) {
-    const [width, setWidth] = useState(0);
-    const carouselRef = useRef<HTMLDivElement>(null);
-    const innerRef = useRef<HTMLDivElement>(null);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const [canPrev, setCanPrev] = useState(false);
+    const [canNext, setCanNext] = useState(false);
+
+    const updateArrows = useCallback(() => {
+        const track = trackRef.current;
+        if (!track) return;
+        setCanPrev(track.scrollLeft > 4);
+        setCanNext(track.scrollLeft + track.clientWidth < track.scrollWidth - 4);
+    }, []);
 
     useEffect(() => {
-        if (carouselRef.current && innerRef.current) {
-            setWidth(innerRef.current.scrollWidth - carouselRef.current.offsetWidth);
-        }
-
-        const handleResize = () => {
-            if (carouselRef.current && innerRef.current) {
-                setWidth(innerRef.current.scrollWidth - carouselRef.current.offsetWidth);
-            }
+        updateArrows();
+        const track = trackRef.current;
+        if (!track) return;
+        track.addEventListener("scroll", updateArrows, { passive: true });
+        window.addEventListener("resize", updateArrows);
+        return () => {
+            track.removeEventListener("scroll", updateArrows);
+            window.removeEventListener("resize", updateArrows);
         };
+    }, [products, updateArrows]);
 
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, [products]);
+    const scrollByPage = (direction: 1 | -1) => {
+        const track = trackRef.current;
+        if (!track) return;
+        track.scrollBy({ left: direction * track.clientWidth, behavior: "smooth" });
+    };
 
-    // Пустое состояние
     if (products.length === 0) {
         return (
             <div className="text-center py-16 border border-dashed border-border/60 rounded-3xl bg-muted/10">
@@ -36,38 +51,32 @@ export function ProductCarousel({ products }: ProductCarouselProps) {
         );
     }
 
-    // Если товаров мало, нет смысла в карусели, показываем обычную сетку
-    if (products.length <= 4) {
-        return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {products.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                ))}
-            </div>
-        );
-    }
+    const arrowClass =
+        "absolute top-[38%] -translate-y-1/2 z-30 h-11 w-11 rounded-full bg-background/95 shadow-lg border border-season-line flex items-center justify-center text-foreground hover:text-season-accent transition-colors disabled:opacity-0 disabled:pointer-events-none";
 
     return (
-        <div className="relative overflow-hidden cursor-grab active:cursor-grabbing w-full pb-8" ref={carouselRef}>
-            <motion.div
-                ref={innerRef}
-                drag="x"
-                dragConstraints={{ right: 0, left: -width }}
-                whileTap={{ cursor: "grabbing" }}
-                className="flex gap-6 px-4 md:px-0"
+        <div className="relative">
+            {/* pt-4: место для товара с эффектом объёма, выступающего над карточкой */}
+            <div
+                ref={trackRef}
+                className="flex gap-6 overflow-x-auto snap-x snap-mandatory pt-4 pb-6 -mt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
                 {products.map((product) => (
-                    <motion.div
+                    <div
                         key={product.id}
-                        className="min-w-[80vw] sm:min-w-[280px] md:min-w-[320px] shrink-0"
+                        className="snap-start shrink-0 basis-[calc((100%-3rem)/3)] lg:basis-[calc((100%-4.5rem)/4)]"
                     >
                         <ProductCard product={product} />
-                    </motion.div>
+                    </div>
                 ))}
-            </motion.div>
+            </div>
 
-            {/* Индикация свайпа для десктопа/мобилки */}
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-24 h-full bg-gradient-to-l from-background to-transparent pointer-events-none hidden md:block" />
+            <button type="button" aria-label="Předchozí produkty" className={`${arrowClass} -left-5`} disabled={!canPrev} onClick={() => scrollByPage(-1)}>
+                <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button type="button" aria-label="Další produkty" className={`${arrowClass} -right-5`} disabled={!canNext} onClick={() => scrollByPage(1)}>
+                <ChevronRight className="h-5 w-5" />
+            </button>
         </div>
     );
 }

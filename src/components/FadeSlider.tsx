@@ -8,6 +8,8 @@ interface FadeSliderProps {
     interval?: number; // в миллисекундах
     alt?: string;
     className?: string;
+    /** 'cover' — фото заполняет рамку (обрезая края), 'contain' — целиком. */
+    fit?: 'cover' | 'contain';
 }
 
 /**
@@ -19,7 +21,8 @@ export function FadeSlider({
     fallbackImage,
     interval = 5000,
     alt = 'Slider image',
-    className = ''
+    className = '',
+    fit = 'contain',
 }: FadeSliderProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -54,6 +57,8 @@ export function FadeSlider({
                 src={displayImages[currentIndex]}
                 alt={alt}
                 fillParent
+                // SmartImage переходит на object-cover, когда задана фокусная точка.
+                focalPoint={fit === 'cover' ? { x: 0.5, y: 0.5 } : undefined}
                 contentBg="bg-muted/30"
                 wrapperClassName="absolute inset-0"
                 className={`transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}

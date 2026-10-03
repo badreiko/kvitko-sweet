@@ -14,24 +14,39 @@ import { ImageUploadHint } from "@/components/admin/ImageUploadHint";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "@/firebase/config";
 import { compressImage, formatFileSize } from "@/utils/imageCompression";
+import { HeroSettingsEditor } from "@/components/admin/HeroSettingsEditor";
+import { useSiteTheme } from "@/context/SiteThemeContext";
+import { HERO_THEME_LABELS, normalizeHeroSettings, resolveHeroTheme } from "@/lib/heroTheme";
 import {
   getSiteSettings,
   updateSiteSettings,
+  updateHeroThemeImage,
   SiteSettings,
   defaultSettings,
-  SectionImages
+  SectionImages,
+  HeroThemeId,
+  HeroSettings
 } from "@/firebase/services/settingsService";
 
 const Settings: FC = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const { refresh: refreshSiteTheme } = useSiteTheme();
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
+  // Состояние, совпадающее с базой: по разнице с ним видно несохранённые правки.
+  const [savedSettings, setSavedSettings] = useState<SiteSettings>(defaultSettings);
+  /** Изменение, которое уже записано в базу (загрузка/удаление картинки). */
+  const applyPersisted = (update: (prev: SiteSettings) => SiteSettings) => {
+    setSettings(update);
+    setSavedSettings(update);
+  };
+  const isDirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
   const [uploadingSection, setUploadingSection] = useState<string | null>(null);
+  const [uploadingHero, setUploadingHero] = useState<string | null>(null);
   const fileInputRefs = {
     deliverySection: useRef<HTMLInputElement>(null),
-    customBouquet: useRef<HTMLInputElement>(null),
-    heroSection: useRef<HTMLInputElement>(null)
+    customBouquet: useRef<HTMLInputElement>(null)
   };
 
   useEffect(() => {
@@ -39,6 +54,7 @@ const Settings: FC = () => {
       try {
         const data = await getSiteSettings();
         setSettings(data);
+        setSavedSettings(data);
       } catch (error) {
         console.error("Failed to load settings:", error);
         toast.error("Ошибка при загрузке настроек");
@@ -48,6 +64,13 @@ const Settings: FC = () => {
     };
     loadSettings();
   }, []);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [isDirty]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -77,8 +100,12 @@ const Settings: FC = () => {
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
-      await updateSiteSettings(settings);
-      toast.success("Настройки успешно сохранены");
+      const snapshot = settings;
+      await updateSiteSettings(snapshot);
+      setSavedSettings(snapshot);
+      void refreshSiteTheme();
+      const live = resolveHeroTheme(snapshot.heroSettings, snapshot.sectionImages);
+      toast.success(`Сохранено. На главной сейчас тема «${HERO_THEME_LABELS[live.themeId]}»`);
     } catch (error) {
       console.error("Error saving settings:", error);
       toast.error("Ошибка при сохранении настроек");
@@ -110,7 +137,7 @@ const Settings: FC = () => {
       const currentImages = settings.sectionImages?.[sectionKey] || [];
       const newImages = [...currentImages, url];
       const newSectionImages = { ...settings.sectionImages, [sectionKey]: newImages };
-      setSettings(prev => ({ ...prev, sectionImages: newSectionImages }));
+      applyPersisted(prev => ({ ...prev, sectionImages: newSectionImages }));
       await updateSiteSettings({ sectionImages: newSectionImages });
 
       toast.success("Изображение добавлено!");
@@ -141,13 +168,91 @@ const Settings: FC = () => {
         delete newSectionImages[sectionKey];
       }
 
-      setSettings(prev => ({ ...prev, sectionImages: newSectionImages }));
+      applyPersisted(prev => ({ ...prev, sectionImages: newSectionImages }));
       await updateSiteSettings({ sectionImages: newSectionImages });
 
       toast.success("Изображение удалено");
     } catch (error) {
       console.error("Error deleting image:", error);
       toast.error("Ошибка при удалении");
+    }
+  };
+
+  const updateHeroDraft = (next: HeroSettings) => {
+    setSettings(prev => ({ ...prev, heroSettings: next }));
+  };
+
+  const handleHeroUpload = async (
+    theme: HeroThemeId,
+    field: 'desktopImage' | 'mobileImage',
+    file: File,
+  ) => {
+    setUploadingHero(`${theme}-${field}`);
+    let uploadedRef: ReturnType<typeof ref> | null = null;
+    try {
+      const result = await compressImage(file, {
+        maxSizeMB: 1.2,
+        maxWidthOrHeight: 2400,
+        quality: 0.88,
+        fileType: 'image/webp',
+      });
+      uploadedRef = ref(storage, `settings/hero/${theme}/${field}-${crypto.randomUUID()}.webp`);
+      await uploadBytes(uploadedRef, result.file, { contentType: 'image/webp' });
+      const url = await getDownloadURL(uploadedRef);
+      await updateHeroThemeImage(theme, field, url);
+      // Функциональное обновление: черновик текста, набранный во время загрузки, не теряется.
+      applyPersisted(prev => {
+        const current = normalizeHeroSettings(prev.heroSettings);
+        return {
+          ...prev,
+          heroSettings: { ...current, themes: { ...current.themes, [theme]: { ...current.themes[theme], [field]: url } } },
+        };
+      });
+      void refreshSiteTheme();
+      toast.success('Изображение сохранено и уже используется темой');
+    } catch (error) {
+      if (uploadedRef) await deleteObject(uploadedRef).catch(() => {});
+      console.error('Error uploading hero image:', error);
+      toast.error('Не удалось сохранить изображение Hero');
+    } finally {
+      setUploadingHero(null);
+    }
+  };
+
+  const handleHeroRemove = async (theme: HeroThemeId, field: 'desktopImage' | 'mobileImage') => {
+    const current = normalizeHeroSettings(settings.heroSettings);
+    const oldUrl = current.themes[theme]?.[field];
+    if (!oldUrl) return;
+    setUploadingHero(`${theme}-${field}`);
+    try {
+      const themeContent = { ...current.themes[theme] };
+      delete themeContent[field];
+      const next: HeroSettings = {
+        ...current,
+        themes: { ...current.themes, [theme]: themeContent },
+      };
+      await updateHeroThemeImage(theme, field, null);
+      applyPersisted(prev => {
+        const latest = normalizeHeroSettings(prev.heroSettings);
+        const latestTheme = { ...latest.themes[theme] };
+        delete latestTheme[field];
+        return { ...prev, heroSettings: { ...latest, themes: { ...latest.themes, [theme]: latestTheme } } };
+      });
+      const stillUsed = Object.values(next.themes).some(profile =>
+        profile?.desktopImage === oldUrl || profile?.mobileImage === oldUrl,
+      ) || settings.sectionImages?.heroSection?.includes(oldUrl);
+      if (!stillUsed) {
+        const imageRef = ref(storage, oldUrl);
+        if (imageRef.fullPath.startsWith('settings/hero/')) {
+          await deleteObject(imageRef).catch(error => console.error('Failed to remove old hero image:', error));
+        }
+      }
+      toast.success('Изображение Hero удалено');
+    } catch (error) {
+      console.error('Error removing hero image:', error);
+      toast.error('Не удалось удалить изображение Hero');
+    } finally {
+      setUploadingHero(null);
     }
   };
 
@@ -164,12 +269,20 @@ const Settings: FC = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        {/* Единственная кнопка сохранения: прилипает к верху и подсвечивается,
+            когда есть несохранённые изменения. */}
+        <div className="sticky top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-3 bg-background/95 backdrop-blur border-b">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Настройки</h2>
-            <p className="text-muted-foreground">Управление настройками сайта и магазина</p>
+            <p className={isDirty ? "text-sm font-medium text-amber-700 dark:text-amber-400" : "text-sm text-muted-foreground"}>
+              {isDirty ? "Есть несохранённые изменения — на сайте их пока нет" : "Все изменения сохранены"}
+            </p>
           </div>
-          <Button onClick={handleSaveSettings} disabled={isSaving}>
+          <Button
+            onClick={handleSaveSettings}
+            variant={isDirty ? "default" : "outline"}
+            disabled={!isDirty || isSaving || uploadingHero !== null || uploadingSection !== null}
+          >
             <Save className="h-4 w-4 mr-2" />
             {isSaving ? "Сохранение..." : "Сохранить все изменения"}
           </Button>
@@ -191,7 +304,7 @@ const Settings: FC = () => {
             </TabsTrigger>
             <TabsTrigger value="images" className="flex items-center gap-2">
               <Image className="h-4 w-4" />
-              <span className="hidden sm:inline">Изображения</span>
+              <span className="hidden sm:inline">Главная</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
@@ -536,15 +649,32 @@ const Settings: FC = () => {
           <TabsContent value="images" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Изображения секций главной страницы</CardTitle>
+                <CardTitle>Разделы главной страницы</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <p className="text-sm text-muted-foreground">
-                  Вы можете загрузить несколько изображений для каждой секции. Они будут автоматически меняться с плавным переходом.
-                </p>
+              <CardContent>
+                <Tabs defaultValue="hero">
+                  <TabsList className="mb-6">
+                    <TabsTrigger value="hero">Hero</TabsTrigger>
+                    <TabsTrigger value="delivery">Доставка</TabsTrigger>
+                    <TabsTrigger value="custom-bouquet">Свой букет</TabsTrigger>
+                  </TabsList>
+
+                <TabsContent value="hero" className="space-y-4">
+                  <p className="rounded-md bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                    Картинки сохраняются сразу при загрузке. Всё остальное — кнопкой «Сохранить все изменения» вверху.
+                  </p>
+                  <HeroSettingsEditor
+                    value={normalizeHeroSettings(settings.heroSettings)}
+                    legacyImages={settings.sectionImages?.heroSection || []}
+                    uploadingSlot={uploadingHero}
+                    onChange={updateHeroDraft}
+                    onUpload={handleHeroUpload}
+                    onRemove={handleHeroRemove}
+                  />
+                </TabsContent>
 
                 {/* Delivery Section Images */}
-                <div className="space-y-3">
+                <TabsContent value="delivery" className="space-y-3">
                   <ImageUploadHint target="delivery" />
                   <div className="flex justify-between items-center">
                     <Label>Секция доставки (Doručení květin)</Label>
@@ -599,12 +729,10 @@ const Settings: FC = () => {
                       </div>
                     )}
                   </div>
-                </div>
-
-                <Separator />
+                </TabsContent>
 
                 {/* Custom Bouquet Section Images */}
-                <div className="space-y-3">
+                <TabsContent value="custom-bouquet" className="space-y-3">
                   <ImageUploadHint target="customBouquet" />
                   <div className="flex justify-between items-center">
                     <Label>Секция "Создай свой букет" (Vytvořte si vlastní kytici)</Label>
@@ -659,67 +787,8 @@ const Settings: FC = () => {
                       </div>
                     )}
                   </div>
-                </div>
-
-                <Separator />
-
-                {/* Hero Section Images */}
-                <div className="space-y-3">
-                  <ImageUploadHint target="hero" />
-                  <div className="flex justify-between items-center">
-                    <Label>Hero секция (основное изображение вверху)</Label>
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        title="Изображение для Hero секции"
-                        ref={fileInputRefs.heroSection}
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleImageUpload('heroSection', file);
-                          e.target.value = '';
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRefs.heroSection.current?.click()}
-                        disabled={uploadingSection === 'heroSection'}
-                      >
-                        {uploadingSection === 'heroSection' ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Загрузка...</>
-                        ) : (
-                          <><Upload className="h-4 w-4 mr-2" />Добавить изображение</>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    {(settings.sectionImages?.heroSection || []).map((url, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={url}
-                          alt={`Hero ${index + 1}`}
-                          className="w-32 h-24 object-cover rounded-lg border"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleImageDelete('heroSection', url)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    {(!settings.sectionImages?.heroSection || settings.sectionImages.heroSection.length === 0) && (
-                      <div className="w-32 h-24 bg-muted rounded-lg flex items-center justify-center">
-                        <Image className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>

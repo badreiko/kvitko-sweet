@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config';
 
 export interface OpeningHours {
@@ -11,6 +11,51 @@ export interface SectionImages {
     deliverySection?: string[];
     customBouquet?: string[];
     heroSection?: string[];
+}
+
+export type HeroThemeId = 'default' | 'spring' | 'summer' | 'autumn' | 'winter' | 'halloween' | 'christmas';
+
+export interface HeroThemeContent {
+    eyebrow: string;
+    title: string;
+    highlight: string;
+    description: string;
+    primaryLabel: string;
+    secondaryLabel: string;
+    desktopImage?: string;
+    /** Устарело: отдельная мобильная картинка больше не настраивается; читается только как запасная. */
+    mobileImage?: string;
+    imageAlt: string;
+    imageFit: 'cover' | 'contain';
+    /** Пропорция области картинки (для всех экранов); 'auto' — высота по экрану. */
+    imageRatio: HeroImageRatio;
+    /** Подпись под букетом: маленькая строка + курсивный заголовок. */
+    signatureKicker: string;
+    signatureTitle: string;
+    /** Свечение, арка и наклон букета за курсором (как в осеннем примере). */
+    decorations: boolean;
+    /** Финальная фраза внизу главной: строки через « / », вторая — курсивом. */
+    closingLine: string;
+}
+
+export type HeroImageRatio = 'auto' | '1:1' | '4:5' | '3:4' | '2:3' | '4:3' | '3:2' | '16:9';
+
+export type HeroHolidayId = 'halloween' | 'christmas';
+
+/** Период праздника в формате MM-DD (по времени Праги), включительно. */
+export interface HeroHolidayPeriod {
+    enabled: boolean;
+    start: string;
+    end: string;
+}
+
+export interface HeroSettings {
+    mode: 'manual' | 'auto';
+    selectedTheme: HeroThemeId;
+    /** Общий выключатель праздничных тем; работает поверх любого режима. */
+    holidaysEnabled: boolean;
+    holidays: Record<HeroHolidayId, HeroHolidayPeriod>;
+    themes: Partial<Record<HeroThemeId, Partial<HeroThemeContent>>>;
 }
 
 export interface SiteSettings {
@@ -32,6 +77,7 @@ export interface SiteSettings {
     openingHours: OpeningHours;
     mapEmbedUrl: string;
     sectionImages: SectionImages;
+    heroSettings?: HeroSettings;
     facebookUrl?: string;
     instagramUrl?: string;
 }
@@ -84,12 +130,33 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
     }
 };
 
+/**
+ * getSiteSettings при ошибке сети возвращает сам объект defaultSettings.
+ * Так можно отличить «настроек нет / не загрузились» от реальных данных.
+ */
+export const isFallbackSettings = (settings: SiteSettings): boolean => settings === defaultSettings;
+
 export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promise<void> => {
     try {
         const docRef = doc(db, SETTINGS_COLLECTION, GENERAL_DOC_ID);
-        await setDoc(docRef, settings, { merge: true });
+        // Replace supplied top-level maps, so removing a nested image URL persists.
+        await setDoc(docRef, settings, { mergeFields: Object.keys(settings) });
     } catch (error) {
         console.error("Error updating site settings:", error);
         throw error;
     }
+};
+
+/**
+ * Точечно записывает (или удаляет при url = null) одно изображение темы Hero.
+ * Остальные поля heroSettings не трогаются — несохранённые правки текста
+ * в админке не уходят на сайт вместе с загрузкой картинки.
+ */
+export const updateHeroThemeImage = async (
+    theme: HeroThemeId,
+    field: 'desktopImage' | 'mobileImage',
+    url: string | null,
+): Promise<void> => {
+    const docRef = doc(db, SETTINGS_COLLECTION, GENERAL_DOC_ID);
+    await updateDoc(docRef, { [`heroSettings.themes.${theme}.${field}`]: url ?? deleteField() });
 };

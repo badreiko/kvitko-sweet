@@ -6,6 +6,7 @@ import homeWeddingIcon from "@/assets/icons/home/home-wedding.webp";
 import homeValentineIcon from "@/assets/icons/home/home-valentine.webp";
 import homeThanksIcon from "@/assets/icons/home/home-thanks.webp";
 import homeOtherGiftIcon from "@/assets/icons/home/home-other-gift.webp";
+import { isInPeriod, pragueDayMonth } from "@/lib/heroTheme";
 
 /**
  * Список поводов покупки цветов. Ключи используются как значение
@@ -19,6 +20,7 @@ import homeOtherGiftIcon from "@/assets/icons/home/home-other-gift.webp";
 const OCCASIONS = [
   {
     key: "birthday",
+    tint: "season-tint-1",
     icon: homeBirthdayIcon,
     title: "Narozeniny",
     subtitle: "Klasika i překvapení",
@@ -26,6 +28,7 @@ const OCCASIONS = [
   },
   {
     key: "wedding",
+    tint: "season-tint-2",
     icon: homeWeddingIcon,
     title: "Svatba",
     subtitle: "Kytice pro nevěsty",
@@ -33,6 +36,7 @@ const OCCASIONS = [
   },
   {
     key: "valentine",
+    tint: "season-tint-3",
     icon: homeValentineIcon,
     title: "Valentýn",
     subtitle: "Vyznání lásky",
@@ -40,6 +44,7 @@ const OCCASIONS = [
   },
   {
     key: "thanks",
+    tint: "season-tint-4",
     icon: homeThanksIcon,
     title: "Poděkování",
     subtitle: "Když prostě záleží",
@@ -47,7 +52,27 @@ const OCCASIONS = [
   },
 ] as const;
 
+/**
+ * Поводы, у которых есть «сезон»: в эти даты карточка встаёт первой.
+ * Хэллоуина и Рождества тут нет — для них пока нет тега у товаров,
+ * и карточка вела бы в пустой каталог.
+ */
+const OCCASION_SEASONS: Partial<Record<(typeof OCCASIONS)[number]["key"], { start: string; end: string }>> = {
+  valentine: { start: "01-25", end: "02-14" },
+};
+
+/** Порядок карточек на сегодня: сезонный повод — первым. */
+export function orderOccasions(date = new Date()) {
+  const today = pragueDayMonth(date);
+  const inSeason = (key: (typeof OCCASIONS)[number]["key"]) => {
+    const period = OCCASION_SEASONS[key];
+    return period ? isInPeriod(today, period.start, period.end) : false;
+  };
+  return [...OCCASIONS].sort((a, b) => Number(inSeason(b.key)) - Number(inSeason(a.key)));
+}
+
 export function OccasionNav() {
+  const occasions = orderOccasions();
   return (
     <section className="py-12 md:py-16 bg-background">
       <div className="container-custom">
@@ -55,8 +80,9 @@ export function OccasionNav() {
           {/* Размер приведён к остальным «средним» секциям главной
               (Featured Products, Categories, Testimonials) — text-3xl md:text-4xl.
               Раньше было text-2xl md:text-3xl — секция визуально «терялась». */}
+          <p className="season-eyebrow mb-3">Pro každou chvíli</p>
           <h2 className="text-3xl md:text-4xl font-serif font-bold tracking-tight mb-3">
-            Kupujete podle <span className="text-primary italic">příležitosti?</span>
+            Kupujete podle <span className="text-season-accent italic">příležitosti?</span>
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Nechte nás pomoct s výběrem. Klikněte na příležitost — ukážeme kytice, které se pro ni hodí.
@@ -64,12 +90,12 @@ export function OccasionNav() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {OCCASIONS.map((o) => {
+          {occasions.map((o) => {
             return (
               <Link
                 key={o.key}
                 to={`/catalog?occasion=${o.key}`}
-                className={`group relative overflow-hidden rounded-2xl md:rounded-3xl border border-border/60 bg-gradient-to-br ${o.accent} hover:border-primary/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 md:p-6 flex flex-col items-start gap-3 min-h-[130px] md:min-h-[160px]`}
+                className={`group relative overflow-hidden rounded-2xl md:rounded-3xl border border-border/60 bg-gradient-to-br ${o.accent} ${o.tint} hover:[border-color:color-mix(in_srgb,var(--theme-accent)_40%,transparent)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 md:p-6 flex flex-col items-start gap-3 min-h-[130px] md:min-h-[160px]`}
               >
                 <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white/70 backdrop-blur-sm flex items-center justify-center shadow-sm">
                   <img
@@ -79,7 +105,7 @@ export function OccasionNav() {
                     className="h-8 w-8 md:h-9 md:w-9 object-contain"
                   />
                 </div>
-                <div className="flex-1 flex flex-col justify-end">
+                <div className="flex-1 flex flex-col">
                   <h3 className="font-serif font-bold text-lg md:text-xl leading-tight text-foreground">
                     {o.title}
                   </h3>
@@ -87,7 +113,7 @@ export function OccasionNav() {
                     {o.subtitle}
                   </p>
                 </div>
-                <ArrowRight className="absolute top-5 right-5 md:top-6 md:right-6 h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="absolute top-5 right-5 md:top-6 md:right-6 h-4 w-4 text-muted-foreground/40 group-hover:text-season-accent group-hover:translate-x-1 transition-all" />
               </Link>
             );
           })}
