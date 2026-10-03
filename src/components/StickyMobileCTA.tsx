@@ -44,6 +44,8 @@ export function StickyMobileCTA() {
   if (
     suppressedRoutes.includes(location.pathname) ||
     location.pathname.startsWith("/admin") ||
+    // У страницы товара своя нижняя панель «Celkem / Do košíku» — без наложения.
+    location.pathname.startsWith("/product/") ||
     location.pathname.startsWith("/account")
   ) {
     return null;

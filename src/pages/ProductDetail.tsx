@@ -22,12 +22,16 @@ import { toast } from "sonner";
 import { getProductById, getProductBySlug, getFeaturedProducts } from "@/firebase/services/productService";
 import { getCategoryById } from "@/firebase/services/categoryService";
 import { Product } from "@/firebase/services/productService";
+import { getActiveTestimonials, Testimonial } from "@/firebase/services/testimonialService";
+import { averageRating, reviewsLabel, reviewsForProduct } from "@/lib/productReviews";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  // Только настоящие отзывы из «Отзывы» в админке, привязанные к товару по названию.
+  const [reviews, setReviews] = useState<Testimonial[]>([]);
   const [categoryName, setCategoryName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -75,9 +79,18 @@ export default function ProductDetail() {
             }
           }
 
-          const featured = await getFeaturedProducts();
-          const filtered = featured.filter(item => item.id !== id);
-          setRelatedProducts(filtered.slice(0, 4));
+          // В адресе может быть slug, поэтому сравниваем с настоящим id товара.
+          // Сначала товары той же категории, затем остальные популярные.
+          const current = productData;
+          const featured = await getFeaturedProducts(24);
+          const related = featured
+            .filter(item => item.id !== current.id)
+            .sort((a, b) => Number(b.category === current.category) - Number(a.category === current.category));
+          setRelatedProducts(related.slice(0, 4));
+
+          getActiveTestimonials(100)
+            .then(all => setReviews(reviewsForProduct(all, current.name)))
+            .catch(error => console.error("Error loading reviews:", error));
         }
       } catch (error) {
         console.error("Error loading product:", error);
@@ -259,17 +272,20 @@ export default function ProductDetail() {
           >
             <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
 
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`h-5 w-5 ${star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-                  />
-                ))}
+            {/* Рейтинг — только при наличии настоящих отзывов (раньше были зашиты «4★ · 12 recenzí»). */}
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex" aria-label={`Hodnocení ${averageRating(reviews).toFixed(1)} z 5`}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`h-5 w-5 ${star <= Math.round(averageRating(reviews)) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">({reviewsLabel(reviews.length)})</span>
               </div>
-              <span className="text-sm text-muted-foreground">(12 recenzí)</span>
-            </div>
+            )}
 
             <div className="text-2xl font-semibold mb-6">{product.price} Kč</div>
 
@@ -375,7 +391,7 @@ export default function ProductDetail() {
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="details">Detaily</TabsTrigger>
             <TabsTrigger value="care">Péče</TabsTrigger>
-            <TabsTrigger value="reviews">Recenze (12)</TabsTrigger>
+            {reviews.length > 0 && <TabsTrigger value="reviews">Recenze ({reviews.length})</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="details" className="mt-6">
@@ -438,73 +454,36 @@ export default function ProductDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="reviews" className="mt-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold">Recenze zákazníků</h3>
-                  <Button>Napsat recenzi</Button>
-                </div>
-
-                <div className="space-y-6">
-                  {/* Ukázkové recenze */}
-                  <div className="border-b border-border pb-6">
-                    <div className="flex justify-between mb-2">
-                      <span className="font-medium">Anna K.</span>
-                      <span className="text-sm text-muted-foreground">15.04.2023</span>
-                    </div>
-                    <div className="flex mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-muted-foreground">
-                      Krásné květiny, vypadají ještě lépe než na fotografii. Doručení bylo včas. Jsem velmi spokojená!
-                    </p>
+          {reviews.length > 0 && (
+            <TabsContent value="reviews" className="mt-6">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-6">Recenze zákazníků</h3>
+                  <div className="space-y-6">
+                    {reviews.map((review, index) => (
+                      <div key={review.id} className={index < reviews.length - 1 ? "border-b border-border pb-6" : ""}>
+                        <div className="flex justify-between mb-2">
+                          <span className="font-medium">{review.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {review.createdAt instanceof Date ? review.createdAt.toLocaleDateString("cs-CZ") : ""}
+                          </span>
+                        </div>
+                        <div className="flex mb-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-muted-foreground">{review.comment}</p>
+                      </div>
+                    ))}
                   </div>
-
-                  <div className="border-b border-border pb-6">
-                    <div className="flex justify-between mb-2">
-                      <span className="font-medium">Petr V.</span>
-                      <span className="text-sm text-muted-foreground">03.04.2023</span>
-                    </div>
-                    <div className="flex mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${star <= 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-muted-foreground">
-                      Objednal jsem kytici pro manželku k výročí. Kvalita je vynikající, květiny jsou čerstvé. Manželka byla nadšená!
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="font-medium">Marie D.</span>
-                      <span className="text-sm text-muted-foreground">25.03.2023</span>
-                    </div>
-                    <div className="flex mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${star <= 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-muted-foreground">
-                      Již několikrát jsem objednala květiny v Kvitko Sweet a vždy jsem spokojená. Čerstvé květiny, krásná úprava, rychlé doručení!
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Související produkty - Parallax Reveal */}
