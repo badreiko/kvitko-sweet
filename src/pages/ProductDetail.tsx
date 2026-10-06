@@ -33,6 +33,7 @@ export default function ProductDetail() {
   // Только настоящие отзывы из «Отзывы» в админке, привязанные к товару по названию.
   const [reviews, setReviews] = useState<Testimonial[]>([]);
   const [categoryName, setCategoryName] = useState<string>("");
+  const [categorySlug, setCategorySlug] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
@@ -42,6 +43,8 @@ export default function ProductDetail() {
   const [lensPos, setLensPos] = useState({ x: 0, y: 0, bgX: 0, bgY: 0 });
   const [isAdded, setIsAdded] = useState(false);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+
+  const inStock = product ? product.inStock !== false && product.stockQuantity !== 0 : false;
 
   // Načtení produktu
   useEffect(() => {
@@ -64,6 +67,7 @@ export default function ProductDetail() {
               const category = await getCategoryById(productData.category);
               if (category) {
                 setCategoryName(category.name);
+                setCategorySlug(category.slug);
               } else {
                 const categoryMap: Record<string, string> = {
                   'bouquets': 'Kytice',
@@ -105,6 +109,10 @@ export default function ProductDetail() {
 
   const handleAddToCartMorph = async () => {
     if (!product) return;
+    if (!inStock) {
+      toast.error("Tento produkt je momentálně nedostupný");
+      return;
+    }
 
     try {
       // Корректно ждём N последовательных добавлений. CartContext теперь
@@ -180,9 +188,9 @@ export default function ProductDetail() {
     <Layout>
       <div className="container-custom pt-8 pb-24 md:pb-8 relative">
         {/* Premium Background Flairs */}
-        <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none" />
-        <div className="absolute top-40 -left-64 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
-        <div className="absolute top-80 -right-64 w-[500px] h-[500px] bg-secondary/20 rounded-full blur-[120px] -z-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-[600px] -z-10 pointer-events-none" style={{ background: "linear-gradient(to bottom, color-mix(in srgb, var(--theme-blush) 45%, transparent), transparent)" }} />
+        <div className="absolute top-40 -left-64 w-[500px] h-[500px] rounded-full blur-[120px] -z-10 pointer-events-none" style={{ background: "color-mix(in srgb, var(--theme-warm) 45%, transparent)" }} />
+        <div className="absolute top-80 -right-64 w-[500px] h-[500px] rounded-full blur-[120px] -z-10 pointer-events-none" style={{ background: "color-mix(in srgb, var(--theme-blush) 60%, transparent)" }} />
 
         {/* Drobečková navigace */}
         <motion.div
@@ -194,7 +202,7 @@ export default function ProductDetail() {
           <ChevronRight className="h-4 w-4 mx-2" />
           <Link to="/catalog" className="hover:text-foreground transition-colors">Katalog</Link>
           <ChevronRight className="h-4 w-4 mx-2" />
-          <Link to={`/catalog/${product.category}`} className="hover:text-foreground transition-colors">
+          <Link to={`/catalog/${categorySlug || product.category}`} className="hover:text-foreground transition-colors">
             {categoryName || product.category}
           </Link>
           <ChevronRight className="h-4 w-4 mx-2" />
@@ -270,7 +278,8 @@ export default function ProductDetail() {
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="lg:col-span-6 flex flex-col pt-4"
           >
-            <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+            {categoryName && <p className="season-eyebrow mb-3">{categoryName}</p>}
+            <h1 className="text-3xl md:text-4xl font-serif font-bold mb-2">{product.name}</h1>
 
             {/* Рейтинг — только при наличии настоящих отзывов (раньше были зашиты «4★ · 12 recenzí»). */}
             {reviews.length > 0 && (
@@ -293,13 +302,24 @@ export default function ProductDetail() {
               {product.description}
             </p>
 
-            {/* Skladem */}
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                <Check className="h-3 w-3 text-white" />
+            {/* Наличие — по данным товара (раньше «Skladem» было всегда) */}
+            {inStock ? (
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                  <Check className="h-3 w-3 text-white" />
+                </div>
+                <span className="text-green-600 font-medium">
+                  {typeof product.stockQuantity === "number" && product.stockQuantity > 0 && product.stockQuantity <= 3
+                    ? `Skladem — poslední ${product.stockQuantity} ${product.stockQuantity === 1 ? "kus" : "kusy"}`
+                    : "Skladem"}
+                </span>
               </div>
-              <span className="text-green-600 font-medium">Skladem</span>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-6 text-muted-foreground">
+                <span className="w-4 h-4 rounded-full border-2 border-muted-foreground/40" />
+                <span className="font-medium">Momentálně nedostupné</span>
+              </div>
+            )}
 
             {/* Přidat do košíku - Morphing Button */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8">
@@ -329,6 +349,7 @@ export default function ProductDetail() {
                   : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/30 hover:scale-105'
                   }`}
                 onClick={handleAddToCartMorph}
+                disabled={!inStock}
               >
                 <AnimatePresence mode="wait">
                   {isAdded ? (
@@ -362,11 +383,11 @@ export default function ProductDetail() {
             <Card className="mb-6">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <Truck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <Truck className="h-5 w-5 text-season-clay shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium">Doručení</p>
                     <p className="text-sm text-muted-foreground">
-                      Doručení po Praze během 2-3 hodin. <Link to="/delivery" className="text-primary hover:underline">Více o doručení</Link>
+                      Doručení po Praze během 2-3 hodin. <Link to="/delivery" className="text-season-accent hover:underline">Více o doručení</Link>
                     </p>
                   </div>
                 </div>
@@ -526,6 +547,7 @@ export default function ProductDetail() {
           <Button
             className={`flex-1 h-12 rounded-full transition-all duration-300 font-medium ${isAdded ? 'bg-green-500 hover:bg-green-600 shadow-green-500/20' : 'shadow-primary/20'}`}
             onClick={handleAddToCartMorph}
+            disabled={!inStock}
           >
             {isAdded ? (
               <span className="flex items-center justify-center gap-2"><Check className="h-5 w-5" /> V košíku</span>

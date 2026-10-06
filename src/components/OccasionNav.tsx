@@ -94,7 +94,7 @@ export function OccasionNav() {
             return (
               <Link
                 key={o.key}
-                to={`/catalog?occasion=${o.key}`}
+                to={`/catalog?prilezitost=${o.key}`}
                 className={`group relative overflow-hidden rounded-2xl md:rounded-3xl border border-border/60 bg-gradient-to-br ${o.accent} ${o.tint} hover:[border-color:color-mix(in_srgb,var(--theme-accent)_40%,transparent)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 md:p-6 flex flex-col items-start gap-3 min-h-[130px] md:min-h-[160px]`}
               >
                 <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white/70 backdrop-blur-sm flex items-center justify-center shadow-sm">
