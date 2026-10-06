@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CalendarDays, ExternalLink, Image as ImageIcon, Sparkles, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ import {
 } from '@/lib/heroTheme';
 import { HeroArt } from '@/components/HeroArt';
 import { SpringBouquet } from '@/assets';
-import { HERO_SCENE_IDS, HERO_SCENES, mobileCropBox, type HeroSceneId } from '@/lib/heroScenes';
+import { HERO_SCENE_IDS, HERO_SCENES, sceneRatio, type HeroSceneId } from '@/lib/heroScenes';
 
 // Сцена грузится только когда её открыли в предпросмотре.
 const HeroScene = lazy(() => import('@/components/home/HeroScene'));
@@ -486,27 +486,28 @@ function ScenePreview({ themeId, content, scene, device }: {
       )}
     </div>
   );
-  const sceneEl = (style?: CSSProperties) => (
+  const sceneEl = (
     <Suspense fallback={null}>
-      <HeroScene scene={scene} style={style} />
+      <HeroScene scene={scene} />
     </Suspense>
   );
+  const ratio = sceneRatio(scene);
 
   if (device === 'mobile') {
-    const box = mobileCropBox(scene);
     return (
       <div data-theme-palette={themeId} className="hero-theme hero-theme--scene max-w-[380px] overflow-hidden rounded-md border">
         <div className="p-6 pb-2">{copy}</div>
-        <div className="relative overflow-hidden" style={{ aspectRatio: String(box.ratio) }}>
-          {sceneEl({ left: box.left, top: box.top, width: box.width, height: box.height })}
+        <div className="relative mt-4" style={{ aspectRatio: String(ratio) }}>
+          {sceneEl}
         </div>
       </div>
     );
   }
   return (
     <div data-theme-palette={themeId} className="hero-theme hero-theme--scene relative aspect-[16/9] overflow-hidden rounded-md border">
-      {sceneEl()}
-      <div className="pointer-events-none absolute inset-y-0 left-[4%] z-10 flex w-[36%] items-center">{copy}</div>
+      {/* Сцена целиком у правого нижнего угла, как на сайте. */}
+      <div className="absolute bottom-0 right-0 h-full" style={{ aspectRatio: String(ratio) }}>{sceneEl}</div>
+      <div className="pointer-events-none absolute inset-y-0 left-[4%] z-10 flex w-[34%] items-center">{copy}</div>
     </div>
   );
 }

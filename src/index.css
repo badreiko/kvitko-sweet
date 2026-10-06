@@ -315,9 +315,9 @@
   }
 
   /* ── Сцена Hero из слоёв (прототип Halloween-Complete) ─────────
-     Сцена 16:9; на компьютере прижата к правому нижнему углу секции,
-     текст слева поверх неё. На телефоне текст сверху, а под ним —
-     правая часть сцены (--crop-*), без пустого места. */
+     Сцена всегда целиком, в своём кадре (--scene-ratio), без обрезки.
+     На компьютере прижата к правому нижнему углу секции, текст слева;
+     на телефоне текст сверху, сцена под ним на всю ширину. */
   .hero-theme.hero-theme--scene[data-theme-palette] {
     background: radial-gradient(120% 120% at 30% 38%,
       color-mix(in srgb, var(--theme-bg) 65%, #fff6e6) 0%,
@@ -346,12 +346,8 @@
   .hero-scene-frame {
     position: relative;
     width: 100%;
-    aspect-ratio: var(--crop-ratio);
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(transparent, #000 9%);
-    mask-image: linear-gradient(transparent, #000 9%);
+    aspect-ratio: var(--scene-ratio);
   }
-  .hero-scene-frame .hero-scene { left: var(--crop-left); top: var(--crop-top); width: var(--crop-width); height: var(--crop-height); }
   .hero-scene-copy { max-width: 34rem; }
   /* Подпись темы: «—— HALLOWEEN EDITION  31. října · Kvitko Sweet». */
   .hero-scene-caption {
@@ -378,7 +374,11 @@
   .hero-scene-veil { display: none; }
   @media (min-width: 1024px) {
     .hero-scene-layout {
-      --scene-h: min(82vh, 800px, 56.25vw);
+      /* Правый край текста: отступ контейнера (max-w-7xl, px-8) + ширина текста. */
+      --copy-right: calc(max(2rem, (100vw - 80rem) / 2 + 2rem) + clamp(22rem, 36vw, 32rem));
+      /* Высота сцены: не выше экрана, а ширина — только место справа от текста
+         (заходить под текст могут лишь крайние лепестки, на 3rem). */
+      --scene-h: min(82vh, 820px, calc((100vw - var(--copy-right) + 3rem) / var(--scene-ratio)));
       min-height: max(560px, var(--scene-h));
     }
     .hero-scene-frame {
@@ -387,12 +387,7 @@
       bottom: 0;
       width: auto;
       height: var(--scene-h);
-      aspect-ratio: 16 / 9;
-      overflow: visible;
-      -webkit-mask-image: none;
-      mask-image: none;
     }
-    .hero-scene-frame .hero-scene { left: 0; top: 0; width: 100%; height: 100%; }
     .hero-scene-copy { max-width: clamp(22rem, 36vw, 32rem); }
     .hero-scene-veil {
       display: block;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { HERO_SCENES, SCENE_HEIGHT, SCENE_WIDTH, type HeroSceneId, type HeroSceneLayer } from '@/lib/heroScenes';
+import { HERO_SCENES, sceneData, type HeroSceneId } from '@/lib/heroScenes';
 import {
   createLayers, pickLayer, settleLayers, startPulse, stepLayers,
   type AlphaMap, type LayerState, type Pointer,
@@ -12,11 +12,6 @@ import { sceneAssetUrl } from '@/lib/heroScenes/assets';
  * тот же вид без 600 КБ библиотеки. Цикл анимации крутится только пока что-то
  * движется. Компонент грузится лениво — только когда у темы выбрана сцена.
  */
-
-// Раскладки сцен: src/lib/heroScenes/<id>.json.
-const SPEC_FILES = import.meta.glob<HeroSceneLayer[]>('@/lib/heroScenes/*.json', { eager: true, import: 'default' });
-const specsOf = (scene: HeroSceneId): HeroSceneLayer[] =>
-  Object.entries(SPEC_FILES).find(([path]) => path.endsWith(`/${scene}.json`))?.[1] ?? [];
 
 /** Альфа-карта слоя в уменьшенном виде (96 px) — для попадания курсором по форме цветка. */
 function alphaMap(img: HTMLImageElement): AlphaMap {
@@ -53,7 +48,11 @@ export default function HeroScene({ scene, pulse = 0, interactive = true, classN
   const pointerRef = useRef<Pointer>({ x: 0, y: 0, on: false });
   const kickRef = useRef<() => void>(() => {});
   const [loaded, setLoaded] = useState(false);
-  const specs = specsOf(scene);
+  const { view, layers: specs } = sceneData(scene);
+  // Кадр сцены: всё видимое целиком, без обрезки.
+  const [vx, vy, vx1, vy1] = view;
+  const vw = vx1 - vx;
+  const vh = vy1 - vy;
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -65,7 +64,7 @@ export default function HeroScene({ scene, pulse = 0, interactive = true, classN
     let previous = 0;
     let cancelled = false;
     // Сцена в единицах → пиксели: обновляется при изменении размера.
-    let scale = stage.clientWidth / SCENE_WIDTH;
+    let scale = stage.clientWidth / vw;
 
     const paint = (layer: LayerState) => {
       const el = imgRefs.current[layer.i];
@@ -89,7 +88,7 @@ export default function HeroScene({ scene, pulse = 0, interactive = true, classN
     kickRef.current = kick;
 
     const resize = new ResizeObserver(() => {
-      scale = stage.clientWidth / SCENE_WIDTH;
+      scale = stage.clientWidth / vw;
     });
     resize.observe(stage);
 
@@ -127,7 +126,7 @@ export default function HeroScene({ scene, pulse = 0, interactive = true, classN
       resize.disconnect();
       reduced.removeEventListener?.('change', onReducedChange);
     };
-  }, [specs]);
+  }, [specs, vw]);
 
   useEffect(() => {
     if (!pulse || !loaded) return;
@@ -138,8 +137,8 @@ export default function HeroScene({ scene, pulse = 0, interactive = true, classN
   const updatePointer = (event: React.PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     pointerRef.current = {
-      x: ((event.clientX - box.left) / box.width) * SCENE_WIDTH,
-      y: ((event.clientY - box.top) / box.height) * SCENE_HEIGHT,
+      x: vx + ((event.clientX - box.left) / box.width) * vw,
+      y: vy + ((event.clientY - box.top) / box.height) * vh,
       on: true,
     };
     kickRef.current();
@@ -173,9 +172,9 @@ export default function HeroScene({ scene, pulse = 0, interactive = true, classN
           decoding="async"
           className={moving ? 'is-moving' : undefined}
           style={{
-            left: `${(x / SCENE_WIDTH) * 100}%`,
-            top: `${(y / SCENE_HEIGHT) * 100}%`,
-            width: `${(w / SCENE_WIDTH) * 100}%`,
+            left: `${((x - vx) / vw) * 100}%`,
+            top: `${((y - vy) / vh) * 100}%`,
+            width: `${(w / vw) * 100}%`,
             opacity,
             transform: `translate(-50%,-50%) rotate(${a}rad)`,
           }}

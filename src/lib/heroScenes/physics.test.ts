@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { HERO_SCENE_IDS, type HeroSceneLayer } from './index';
+import { HERO_SCENE_IDS, type HeroSceneData } from './index';
 import { createLayers, hitLayer, pickLayer, startPulse, stepLayers, type AlphaMap } from './physics';
 
 // Квадратная картинка 4×4: непрозрачна только левая половина.
@@ -51,9 +51,16 @@ describe('hero scene physics', () => {
   it('every scene references existing layer images', () => {
     const assets = new Set(readdirSync(join(__dirname, '../../assets/hero-scenes')).map(file => file.replace(/\.webp$/, '')));
     for (const id of HERO_SCENE_IDS) {
-      const specs = JSON.parse(readFileSync(join(__dirname, `${id}.json`), 'utf-8')) as HeroSceneLayer[];
-      expect(specs.length).toBeGreaterThan(10);
-      for (const [asset] of specs) expect(assets.has(asset), `${id}: ${asset}`).toBe(true);
+      const { view, layers } = JSON.parse(readFileSync(join(__dirname, `${id}.json`), 'utf-8')) as HeroSceneData;
+      expect(layers.length).toBeGreaterThan(10);
+      for (const [asset] of layers) expect(assets.has(asset), `${id}: ${asset}`).toBe(true);
+      // Кадр охватывает центры всех слоёв (полные границы считает скрипт сборки).
+      for (const [, x, y] of layers) {
+        expect(x).toBeGreaterThan(view[0]);
+        expect(x).toBeLessThan(view[2]);
+        expect(y).toBeGreaterThan(view[1]);
+        expect(y).toBeLessThan(view[3]);
+      }
     }
   });
 });

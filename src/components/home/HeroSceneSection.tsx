@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import MagneticButton from '@/components/MagneticButton';
 import type { HeroThemeContent, HeroThemeId } from '@/firebase/services/settingsService';
-import { mobileCropBox, type HeroSceneId } from '@/lib/heroScenes';
+import { sceneRatio, type HeroSceneId } from '@/lib/heroScenes';
 
 // Слои и физика сцены грузятся отдельным файлом — только если тема со сценой.
 const HeroScene = lazy(() => import('@/components/home/HeroScene'));
@@ -18,17 +18,6 @@ interface HeroSceneSectionProps {
   ready: boolean;
 }
 
-/** Обрезка сцены на телефоне (см. HERO_SCENES.mobileCrop) — через CSS-переменные. */
-function cropStyle(scene: HeroSceneId): CSSProperties {
-  const box = mobileCropBox(scene);
-  return {
-    '--crop-ratio': String(box.ratio),
-    '--crop-left': box.left,
-    '--crop-top': box.top,
-    '--crop-width': box.width,
-    '--crop-height': box.height,
-  } as CSSProperties;
-}
 
 /**
  * Hero темы в режиме «Сцена»: текст слева, справа живая сцена из слоёв
@@ -55,6 +44,8 @@ export const HeroSceneSection = forwardRef<HTMLElement, HeroSceneSectionProps>(f
       ref={ref}
       data-theme-palette={themeId}
       className="hero-theme hero-theme--scene hero-scene-layout relative overflow-hidden flex flex-col lg:justify-center pt-8 md:pt-12 lg:py-14"
+      // Пропорция полного кадра сцены — от неё зависят размеры на всех экранах.
+      style={{ '--scene-ratio': String(sceneRatio(scene)) } as CSSProperties}
     >
       {/* Мягкая подложка под текстом: цветы сцены не мешают читать (только компьютер). */}
       <div className="hero-scene-veil" aria-hidden="true" />
@@ -108,7 +99,7 @@ export const HeroSceneSection = forwardRef<HTMLElement, HeroSceneSectionProps>(f
         </motion.div>
       </div>
 
-      <div className="hero-scene-frame mt-4 lg:mt-0" style={cropStyle(scene)}>
+      <div className="hero-scene-frame mt-6 lg:mt-0">
         {ready && (
           <Suspense fallback={null}>
             <HeroScene scene={scene} pulse={pulse} />
