@@ -7,6 +7,7 @@ import type {
   HeroThemeId,
   SectionImages,
 } from '@/firebase/services/settingsService';
+import { isHeroSceneId, type HeroSceneId } from '@/lib/heroScenes';
 
 export const HERO_THEME_IDS: HeroThemeId[] = [
   'default', 'spring', 'summer', 'autumn', 'winter', 'halloween', 'christmas',
@@ -53,6 +54,8 @@ export const HERO_THEME_DEFAULTS: Record<HeroThemeId, HeroThemeContent> = {
     signatureTitle: '',
     decorations: false,
     closingLine: 'Vytvoříme / něco / krásného',
+    artMode: 'image',
+    scene: 'autumn-cascade',
   },
   spring: {
     eyebrow: 'JARO V KVITKO SWEET',
@@ -68,6 +71,8 @@ export const HERO_THEME_DEFAULTS: Record<HeroThemeId, HeroThemeContent> = {
     signatureTitle: 'Jarní probuzení',
     decorations: true,
     closingLine: 'Jaro / rozkvete / u vás',
+    artMode: 'image',
+    scene: 'autumn-cascade',
   },
   summer: {
     eyebrow: 'LÉTO V KVITKO SWEET',
@@ -83,6 +88,8 @@ export const HERO_THEME_DEFAULTS: Record<HeroThemeId, HeroThemeContent> = {
     signatureTitle: 'Letní louka',
     decorations: true,
     closingLine: 'Léto / plné / květin',
+    artMode: 'image',
+    scene: 'autumn-cascade',
   },
   autumn: {
     eyebrow: 'PODZIM V KVITKO SWEET',
@@ -98,6 +105,8 @@ export const HERO_THEME_DEFAULTS: Record<HeroThemeId, HeroThemeContent> = {
     signatureTitle: 'Podzimní harmonie',
     decorations: true,
     closingLine: 'Podzim / v každé / kytici',
+    artMode: 'image',
+    scene: 'autumn-cascade',
   },
   winter: {
     eyebrow: 'ZIMA V KVITKO SWEET',
@@ -113,21 +122,26 @@ export const HERO_THEME_DEFAULTS: Record<HeroThemeId, HeroThemeContent> = {
     signatureTitle: 'Zimní klid',
     decorations: true,
     closingLine: 'Teplo / pro zimní / dny',
+    artMode: 'image',
+    scene: 'autumn-cascade',
   },
   halloween: {
-    eyebrow: 'HALLOWEEN V KVITKO SWEET',
-    title: 'Podzim s trochou kouzla.',
-    highlight: 'Květiny s charakterem.',
-    description: 'Výrazné podzimní kytice a dekorace pro sváteční atmosféru.',
-    primaryLabel: 'Prohlédnout kytice',
+    // Тексты из прототипа Halloween-Complete.
+    eyebrow: 'PODZIMNÍ KOLEKCE',
+    title: 'Květiny, které',
+    highlight: 'umí čarovat.',
+    description: 'Sametové růže, lilie a dýně — halloweenská kolekce, která voní podzimem.',
+    primaryLabel: 'Objevit kolekci',
     secondaryLabel: 'Sestavit vlastní kytici',
     imageAlt: 'Halloweenská květinová dekorace Kvitko Sweet',
     imageFit: 'contain',
     imageRatio: 'auto',
-    signatureKicker: 'Sváteční edice',
-    signatureTitle: 'Kouzelný podzim',
+    signatureKicker: 'Halloween edition',
+    signatureTitle: '31. října · Kvitko Sweet',
     decorations: true,
     closingLine: 'Trochu / kouzla / do kytice',
+    artMode: 'scene',
+    scene: 'witch-hat',
   },
   christmas: {
     eyebrow: 'VÁNOCE V KVITKO SWEET',
@@ -143,6 +157,8 @@ export const HERO_THEME_DEFAULTS: Record<HeroThemeId, HeroThemeContent> = {
     signatureTitle: 'Vánoční pohoda',
     decorations: true,
     closingLine: 'Vánoce / plné / květin',
+    artMode: 'image',
+    scene: 'autumn-cascade',
   },
 };
 
@@ -270,14 +286,23 @@ export function holidayTheme(
   }) ?? null;
 }
 
+/** Сцена темы, если у неё выбран режим «Сцена»; иначе null (картинка). */
+export function heroSceneOf(content: Partial<Pick<HeroThemeContent, 'artMode' | 'scene'>>): HeroSceneId | null {
+  return content.artMode === 'scene' && isHeroSceneId(content.scene) ? content.scene : null;
+}
+
+/** Тему можно показывать: у неё есть картинка или выбрана сцена. */
 export function isHeroThemeReady(settings: HeroSettings, id: HeroThemeId): boolean {
-  return Boolean(settings.themes[id]?.desktopImage || settings.themes[id]?.mobileImage);
+  const content = { ...HERO_THEME_DEFAULTS[id], ...settings.themes[id] };
+  return Boolean(heroSceneOf(content) || content.desktopImage || content.mobileImage);
 }
 
 export function resolveHeroTheme(
   value?: Partial<HeroSettings>,
   sectionImages?: SectionImages,
   date = new Date(),
+  /** Предпросмотр темы по ссылке ?nahled-motivu=… — без дат и проверок. */
+  preview?: HeroThemeId | null,
 ) {
   const settings = normalizeHeroSettings(value);
   const ready = (id: HeroThemeId) => isHeroThemeReady(settings, id);
@@ -295,6 +320,7 @@ export function resolveHeroTheme(
   // но только в свой период и только если у него есть изображение.
   const holiday = settings.holidaysEnabled ? holidayTheme(date, settings.holidays) : null;
   if (holiday && ready(holiday)) themeId = holiday;
+  if (preview && HERO_THEME_IDS.includes(preview)) themeId = preview;
 
   const content = { ...HERO_THEME_DEFAULTS[themeId], ...settings.themes[themeId] };
   const legacyImage = sectionImages?.heroSection?.[0];
@@ -306,4 +332,29 @@ export function resolveHeroTheme(
       desktopImage: content.desktopImage || content.mobileImage || legacyImage,
     },
   };
+}
+
+export const THEME_PREVIEW_PARAM = 'nahled-motivu';
+const PREVIEW_KEY = 'kvitko:theme-preview';
+
+/**
+ * Тема для предпросмотра из адреса (?nahled-motivu=halloween) — видна только
+ * в этой вкладке и не сохраняется в базе. ?nahled-motivu=off выключает.
+ */
+export function readThemePreview(search: string): HeroThemeId | null {
+  try {
+    const param = new URLSearchParams(search).get(THEME_PREVIEW_PARAM);
+    if (param !== null) {
+      if (HERO_THEME_IDS.includes(param as HeroThemeId)) {
+        sessionStorage.setItem(PREVIEW_KEY, param);
+        return param as HeroThemeId;
+      }
+      sessionStorage.removeItem(PREVIEW_KEY);
+      return null;
+    }
+    const saved = sessionStorage.getItem(PREVIEW_KEY);
+    return HERO_THEME_IDS.includes(saved as HeroThemeId) ? (saved as HeroThemeId) : null;
+  } catch {
+    return null;
+  }
 }

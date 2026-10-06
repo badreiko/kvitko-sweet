@@ -1,5 +1,6 @@
 import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config';
+import type { HeroSceneId } from '@/lib/heroScenes';
 
 export interface OpeningHours {
     weekdays: string;
@@ -36,6 +37,9 @@ export interface HeroThemeContent {
     decorations: boolean;
     /** Финальная фраза внизу главной: строки через « / », вторая — курсивом. */
     closingLine: string;
+    /** Что стоит справа от текста: загруженная картинка или анимированная сцена из слоёв. */
+    artMode: 'image' | 'scene';
+    scene: HeroSceneId;
 }
 
 export type HeroImageRatio = 'auto' | '1:1' | '4:5' | '3:4' | '2:3' | '4:3' | '3:2' | '16:9';

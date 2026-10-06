@@ -6,7 +6,7 @@ import {
   type HeroThemeId,
   type SiteSettings,
 } from '@/firebase/services/settingsService';
-import { resolveHeroTheme } from '@/lib/heroTheme';
+import { readThemePreview, resolveHeroTheme } from '@/lib/heroTheme';
 
 /**
  * Сезонная/праздничная тема всего сайта.
@@ -59,6 +59,7 @@ export function SiteThemeProvider({ children }: { children: ReactNode }) {
   const [heroSettings, setHeroSettings] = useState<HeroSettings | undefined>(cache?.heroSettings);
   const [legacyImages, setLegacyImages] = useState<string[]>(cache?.heroSection ?? []);
   const [ready, setReady] = useState(cache !== null);
+  const [preview] = useState(() => readThemePreview(window.location.search));
 
   const refresh = useCallback(async () => {
     try {
@@ -78,8 +79,8 @@ export function SiteThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => { void refresh(); }, [refresh]);
 
   const hero = useMemo(
-    () => resolveHeroTheme(heroSettings, { heroSection: legacyImages }),
-    [heroSettings, legacyImages],
+    () => resolveHeroTheme(heroSettings, { heroSection: legacyImages }, new Date(), preview),
+    [heroSettings, legacyImages, preview],
   );
 
   // До отрисовки, чтобы секции не мелькали цветами базовой темы.

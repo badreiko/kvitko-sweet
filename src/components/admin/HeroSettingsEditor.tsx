@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, Image as ImageIcon, Trash2, Upload } from 'lucide-react';
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { CalendarDays, ExternalLink, Image as ImageIcon, Sparkles, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +21,10 @@ import {
   HERO_THEME_DEFAULTS,
   HERO_THEME_IDS,
   HERO_THEME_LABELS,
+  THEME_PREVIEW_PARAM,
   formatDayMonth,
   heroRatio,
+  heroSceneOf,
   isHeroThemeReady,
   nearestHeroRatio,
   parseDayMonth,
@@ -30,6 +32,10 @@ import {
 } from '@/lib/heroTheme';
 import { HeroArt } from '@/components/HeroArt';
 import { SpringBouquet } from '@/assets';
+import { HERO_SCENE_IDS, HERO_SCENES, mobileCropBox, type HeroSceneId } from '@/lib/heroScenes';
+
+// Сцена грузится только когда её открыли в предпросмотре.
+const HeroScene = lazy(() => import('@/components/home/HeroScene'));
 
 type ImageField = 'desktopImage' | 'mobileImage';
 
@@ -118,6 +124,8 @@ function DayMonthInput({ id, value, disabled, onCommit }: {
 }
 
 function themeStatus(value: HeroSettings, id: HeroThemeId, legacyImages: string[]): string {
+  const scene = heroSceneOf({ ...HERO_THEME_DEFAULTS[id], ...value.themes[id] });
+  if (scene) return `Сцена «${HERO_SCENES[scene].label}»`;
   if (isHeroThemeReady(value, id)) return 'Изображение готово';
   if (id === 'default') return legacyImages.length ? 'Старое изображение' : 'Стандартный букет';
   return 'Без изображения — не показывается';
@@ -133,6 +141,7 @@ export function HeroSettingsEditor({ value, legacyImages, uploadingSlot, onChang
   // Одна картинка на все экраны; старая mobileImage показывается, только если другой нет.
   const themeImage = content.desktopImage || content.mobileImage;
   const previewImage = themeImage || fallbackImage;
+  const scene = heroSceneOf(content);
 
   const updateField = <K extends keyof HeroThemeContent>(field: K, fieldValue: HeroThemeContent[K]) => {
     onChange({
@@ -271,7 +280,7 @@ export function HeroSettingsEditor({ value, legacyImages, uploadingSlot, onChang
             <>
               <p className="text-sm text-muted-foreground">
                 Вы редактируете «{HERO_THEME_LABELS[editingTheme]}», а на главной сейчас «{HERO_THEME_LABELS[active.themeId]}».
-                {editingTheme !== 'default' && !isHeroThemeReady(value, editingTheme) && ' Чтобы включить тему, загрузите для неё изображение.'}
+                {editingTheme !== 'default' && !isHeroThemeReady(value, editingTheme) && ' Чтобы включить тему, загрузите для неё изображение или выберите сцену.'}
               </p>
               <Button
                 type="button"
@@ -314,10 +323,29 @@ export function HeroSettingsEditor({ value, legacyImages, uploadingSlot, onChang
         </div>
 
         <div className="min-w-0 space-y-5">
-          <div>
-            <h3 className="font-semibold">Изображение</h3>
-            <p className="text-xs text-muted-foreground">Одно на все экраны. Лучше всего — букет на прозрачном фоне (PNG/WebP), как в осеннем примере. Сохраняется сразу при загрузке.</p>
+          <div className="space-y-3">
+            <h3 className="font-semibold">Оформление справа от текста</h3>
+            <div className="inline-flex rounded-md border bg-muted/40 p-1 text-sm">
+              <button type="button" aria-pressed={!scene} onClick={() => updateField('artMode', 'image')} className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 ${!scene ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}><ImageIcon className="h-4 w-4" />Картинка</button>
+              <button type="button" aria-pressed={Boolean(scene)} onClick={() => updateField('artMode', 'scene')} className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 ${scene ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}><Sparkles className="h-4 w-4" />Живая сцена</button>
+            </div>
           </div>
+          {scene ? (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Сцена собрана из отдельных цветов, листьев и декора: каждый цветок отталкивается от курсора или пальца, при наведении на кнопку по сцене проходит волна. Картинки уже встроены в сайт — загружать ничего не нужно.</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {HERO_SCENE_IDS.map(id => (
+                  <button key={id} type="button" aria-pressed={content.scene === id} onClick={() => updateField('scene', id)} className={`rounded-md border px-3 py-2 text-left text-sm transition-colors ${content.scene === id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
+                    <span className="block font-medium">{HERO_SCENES[id].label}</span>
+                    <span className="block text-xs text-muted-foreground">{HERO_SCENES[id].hint}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">«Подпись · строка» и «Подпись · название» выводятся под кнопками, например «Halloween edition» и «31. října · Kvitko Sweet».</p>
+            </div>
+          ) : (
+          <>
+          <p className="text-xs text-muted-foreground">Одна картинка на все экраны. Лучше всего — букет на прозрачном фоне (PNG/WebP), как в осеннем примере. Сохраняется сразу при загрузке.</p>
           <div className="max-w-sm">
             <ImageSlot
               label="Картинка темы"
@@ -370,6 +398,8 @@ export function HeroSettingsEditor({ value, legacyImages, uploadingSlot, onChang
               </div>
             </div>
           )}
+          </>
+          )}
         </div>
       </section>
 
@@ -377,11 +407,19 @@ export function HeroSettingsEditor({ value, legacyImages, uploadingSlot, onChang
       <section className="space-y-3 border-t pt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-semibold">Предпросмотр · {HERO_THEME_LABELS[editingTheme]}</h3>
+          <div className="flex flex-wrap items-center gap-3">
+          <a href={`/?${THEME_PREVIEW_PARAM}=${editingTheme}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+            <ExternalLink className="h-4 w-4" />Открыть на сайте
+          </a>
           <div className="inline-flex rounded-md border bg-muted/40 p-1 text-sm">
             <button type="button" aria-pressed={previewDevice === 'desktop'} onClick={() => setPreviewDevice('desktop')} className={`rounded px-3 py-1 ${previewDevice === 'desktop' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}>Desktop</button>
             <button type="button" aria-pressed={previewDevice === 'mobile'} onClick={() => setPreviewDevice('mobile')} className={`rounded px-3 py-1 ${previewDevice === 'mobile' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}>Mobile</button>
           </div>
+          </div>
         </div>
+        {scene ? (
+          <ScenePreview themeId={editingTheme} content={content} scene={scene} device={previewDevice} />
+        ) : (
         <div
           data-theme-palette={editingTheme}
           className={`hero-theme ${editingTheme === 'default' ? 'mesh-gradient' : ''} ${previewDevice === 'mobile' ? 'max-w-[380px]' : ''} overflow-hidden rounded-md border`}
@@ -411,10 +449,64 @@ export function HeroSettingsEditor({ value, legacyImages, uploadingSlot, onChang
             />
           </div>
         </div>
+        )}
+        <p className="text-xs text-muted-foreground">«Открыть на сайте» показывает <strong>сохранённую</strong> версию темы в новой вкладке — посетители её не видят.</p>
         {!isHeroThemeReady(value, editingTheme) && editingTheme !== 'default' && (
           <p className="text-xs text-muted-foreground">Пока показана запасная картинка. Тема попадёт на главную, когда у неё будет изображение.</p>
         )}
       </section>
+    </div>
+  );
+}
+
+/** Предпросмотр темы со сценой: на компьютере текст поверх сцены, на телефоне — над ней. */
+function ScenePreview({ themeId, content, scene, device }: {
+  themeId: HeroThemeId;
+  content: HeroThemeContent;
+  scene: HeroSceneId;
+  device: 'desktop' | 'mobile';
+}) {
+  const copy = (
+    <div className="space-y-3">
+      <p className="hero-eyebrow">{content.eyebrow}</p>
+      <p className="font-serif text-3xl leading-[1.02] text-foreground">
+        {content.title}
+        <span className="block italic" style={{ color: 'var(--theme-accent)' }}>{content.highlight}</span>
+      </p>
+      {content.description?.trim() && <p className="text-xs text-muted-foreground">{content.description}</p>}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="inline-block rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground">{content.primaryLabel}</span>
+        <span className="text-xs text-muted-foreground underline underline-offset-4">{content.secondaryLabel}</span>
+      </div>
+      {(content.signatureKicker?.trim() || content.signatureTitle?.trim()) && (
+        <p className="hero-scene-caption !text-[11px]">
+          {content.signatureKicker?.trim() && <span className="hero-scene-kicker !text-[9px]">{content.signatureKicker}</span>}
+          {content.signatureTitle}
+        </p>
+      )}
+    </div>
+  );
+  const sceneEl = (style?: CSSProperties) => (
+    <Suspense fallback={null}>
+      <HeroScene scene={scene} style={style} />
+    </Suspense>
+  );
+
+  if (device === 'mobile') {
+    const box = mobileCropBox(scene);
+    return (
+      <div data-theme-palette={themeId} className="hero-theme hero-theme--scene max-w-[380px] overflow-hidden rounded-md border">
+        <div className="p-6 pb-2">{copy}</div>
+        <div className="relative overflow-hidden" style={{ aspectRatio: String(box.ratio) }}>
+          {sceneEl({ left: box.left, top: box.top, width: box.width, height: box.height })}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div data-theme-palette={themeId} className="hero-theme hero-theme--scene relative aspect-[16/9] overflow-hidden rounded-md border">
+      {sceneEl()}
+      <div className="pointer-events-none absolute inset-y-0 left-[4%] z-10 flex w-[36%] items-center">{copy}</div>
     </div>
   );
 }

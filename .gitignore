@@ -40,3 +40,6 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Прототип сцены Хэллоуина (исходные PNG ~50 МБ) — в Git только готовые WebP из scripts/build-hero-scene-assets.py
+Halloween-Complete/

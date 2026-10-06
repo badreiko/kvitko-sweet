@@ -24,9 +24,12 @@ import { getRecentPosts, BlogPost } from "@/firebase/services/blogService";
 import { getActiveTestimonials, Testimonial } from "@/firebase/services/testimonialService";
 import { getActiveCategories, Category } from "@/firebase/services/categoryService";
 import { getActiveDeliveryZones, DeliveryZone } from "@/firebase/services/deliverySettingsService";
-import { closingLines, heroRatio } from "@/lib/heroTheme";
+import { closingLines, heroRatio, heroSceneOf } from "@/lib/heroTheme";
+import { HERO_SCENES } from "@/lib/heroScenes";
 import { useSiteTheme } from "@/context/SiteThemeContext";
 import { HeroArt } from "@/components/HeroArt";
+import { HeroSceneSection } from "@/components/home/HeroSceneSection";
+import { sceneAssetUrl } from "@/lib/heroScenes/assets";
 
 // Импортируем изображение для hero-секции
 import {
@@ -149,6 +152,12 @@ export default function Home() {
   const opacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
   const { themeId: heroThemeId, content: heroContent } = hero;
   const heroDesktopImage = heroContent.desktopImage || SpringBouquet;
+  // Тема со сценой из слоёв (например, Хэллоуин) вместо одной картинки.
+  const heroScene = heroSceneOf(heroContent);
+  // Акцент финальной секции: букет темы или слой сцены (тыква).
+  const closingAccent = heroScene
+    ? sceneAssetUrl(HERO_SCENES[heroScene].accent)
+    : heroContent.imageFit === 'contain' && heroContent.decorations ? heroDesktopImage : undefined;
 
   // ─────────────────────────────────────────────────────────────────────
   // Порядок секций (impact-first):
@@ -168,6 +177,9 @@ export default function Home() {
       {/* 1. Hero Section. relative нужен, чтобы framer-motion useScroll
           корректно считал offset (иначе warn «container has non-static
           position»). */}
+      {heroScene ? (
+        <HeroSceneSection ref={heroRef} themeId={heroThemeId} content={heroContent} scene={heroScene} ready={heroReady} />
+      ) : (
       <section
         ref={heroRef}
         data-theme-palette={heroThemeId}
@@ -256,6 +268,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* 2. USP-полоса — 3 бенефита в одной строке. Отдельная секция,
           компактная, до продуктов. Раньше эти иконки были встроены между
@@ -791,9 +804,9 @@ export default function Home() {
         <div className="absolute left-1/2 top-8 bottom-0 w-[min(620px,86vw)] -translate-x-1/2 rounded-t-full border border-b-0 pointer-events-none" style={{ borderColor: 'color-mix(in srgb, var(--theme-clay) 20%, transparent)' }} aria-hidden="true" />
 
         {/* Букет темы — небольшой акцент справа (только прозрачные букеты) */}
-        {heroContent.imageFit === 'contain' && heroContent.decorations && heroDesktopImage && (
+        {closingAccent && (
           <img
-            src={heroDesktopImage}
+            src={closingAccent}
             alt=""
             aria-hidden="true"
             loading="lazy"

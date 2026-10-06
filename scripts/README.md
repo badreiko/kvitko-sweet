@@ -73,3 +73,18 @@ npx ts-node scripts/migrateStorageToWebp.ts
 
 В админке проверь, что картинки отрисовываются нормально. Если что-то
 пошло не так — Firestore-импорт из бэкапа восстанавливает старые URL.
+
+## `build-hero-scene-assets.py`
+
+Готовит слои живых сцен Hero («Ведьмина шляпа», «Осенняя композиция»).
+Раскладки сцен — `src/lib/heroScenes/<сцена>.json`, картинки слоёв —
+`src/assets/hero-scenes/*.webp`. Исходные PNG (прототип `Halloween-Complete/`,
+~50 МБ) в Git не хранятся.
+
+```bash
+python scripts/build-hero-scene-assets.py Halloween-Complete/assets
+```
+
+Каждый слой уменьшается до самого крупного размера, в котором он стоит в
+сценах, и получает цветовой фильтр прототипа. Итог — около 1 МБ на все слои.
+Нужны `Pillow` и `numpy`.

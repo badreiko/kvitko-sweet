@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentSeason, heroRatio, holidayTheme, nearestHeroRatio, parseDayMonth, resolveHeroTheme } from './heroTheme';
+import { currentSeason, heroRatio, heroSceneOf, holidayTheme, isHeroThemeReady, nearestHeroRatio, normalizeHeroSettings, parseDayMonth, readThemePreview, resolveHeroTheme } from './heroTheme';
 
 const image = 'https://example.test/hero.webp';
 
@@ -28,7 +28,7 @@ describe('hero theme selection', () => {
   it('falls back to configured season and then legacy hero image', () => {
     const settings = {
       mode: 'auto' as const,
-      holidaysEnabled: true,
+      holidaysEnabled: false,
       selectedTheme: 'default' as const,
       themes: { autumn: { mobileImage: image } },
     };
@@ -59,6 +59,38 @@ describe('hero theme selection', () => {
     expect(holidayTheme(new Date('2026-12-31T12:00:00Z'), holidays)).toBe('christmas');
     expect(holidayTheme(new Date('2027-01-06T12:00:00Z'), holidays)).toBe('christmas');
     expect(holidayTheme(new Date('2027-01-07T12:00:00Z'), holidays)).toBeNull();
+  });
+
+  it('treats a theme with a scene as ready without an image', () => {
+    const settings = { mode: 'manual' as const, holidaysEnabled: true, selectedTheme: 'autumn' as const, themes: { autumn: { desktopImage: image } } };
+    // Хэллоуин по умолчанию — сцена «Ведьмина шляпа», картинка не нужна.
+    expect(isHeroThemeReady(normalizeHeroSettings(settings), 'halloween')).toBe(true);
+    expect(resolveHeroTheme(settings, {}, new Date('2026-10-25T12:00:00Z')).themeId).toBe('halloween');
+    expect(heroSceneOf(resolveHeroTheme(settings, {}, new Date('2026-10-25T12:00:00Z')).content)).toBe('witch-hat');
+    // Переключили на картинку, но не загрузили — праздник не показывается.
+    const imageOnly = { ...settings, themes: { ...settings.themes, halloween: { artMode: 'image' as const } } };
+    expect(isHeroThemeReady(normalizeHeroSettings(imageOnly), 'halloween')).toBe(false);
+    expect(resolveHeroTheme(imageOnly, {}, new Date('2026-10-25T12:00:00Z')).themeId).toBe('autumn');
+    // Осень может включить сцену.
+    const autumnScene = { ...settings, themes: { autumn: { artMode: 'scene' as const, scene: 'autumn-cascade' as const } } };
+    expect(isHeroThemeReady(normalizeHeroSettings(autumnScene), 'autumn')).toBe(true);
+    expect(heroSceneOf(resolveHeroTheme(autumnScene, {}, new Date('2026-10-05T12:00:00Z')).content)).toBe('autumn-cascade');
+  });
+
+  it('previews any theme by link without changing the schedule', () => {
+    const store = new Map<string, string>();
+    globalThis.sessionStorage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => { store.set(key, value); },
+      removeItem: (key: string) => { store.delete(key); },
+    } as Storage;
+    const settings = { mode: 'manual' as const, holidaysEnabled: false, selectedTheme: 'autumn' as const, themes: { autumn: { desktopImage: image } } };
+    expect(resolveHeroTheme(settings, {}, new Date('2026-10-05T12:00:00Z'), 'halloween').themeId).toBe('halloween');
+    expect(resolveHeroTheme(settings, {}, new Date('2026-10-05T12:00:00Z'), null).themeId).toBe('autumn');
+    expect(readThemePreview('?nahled-motivu=christmas')).toBe('christmas');
+    expect(readThemePreview('')).toBe('christmas');
+    expect(readThemePreview('?nahled-motivu=off')).toBeNull();
+    expect(readThemePreview('')).toBeNull();
   });
 
   it('parses day.month input', () => {

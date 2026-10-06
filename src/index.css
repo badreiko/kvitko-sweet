@@ -314,6 +314,97 @@
     }
   }
 
+  /* ── Сцена Hero из слоёв (прототип Halloween-Complete) ─────────
+     Сцена 16:9; на компьютере прижата к правому нижнему углу секции,
+     текст слева поверх неё. На телефоне текст сверху, а под ним —
+     правая часть сцены (--crop-*), без пустого места. */
+  .hero-theme.hero-theme--scene[data-theme-palette] {
+    background: radial-gradient(120% 120% at 30% 38%,
+      color-mix(in srgb, var(--theme-bg) 65%, #fff6e6) 0%,
+      color-mix(in srgb, var(--theme-warm) 20%, var(--theme-bg)) 45%,
+      color-mix(in srgb, var(--theme-warm) 36%, var(--theme-bg)) 100%);
+  }
+  .hero-scene {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .hero-scene.is-loaded { opacity: 1; }
+  .hero-scene img {
+    position: absolute;
+    max-width: none;
+    height: auto;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .hero-scene img.is-moving { will-change: transform; }
+  .hero-scene-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: var(--crop-ratio);
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, #000 9%);
+    mask-image: linear-gradient(transparent, #000 9%);
+  }
+  .hero-scene-frame .hero-scene { left: var(--crop-left); top: var(--crop-top); width: var(--crop-width); height: var(--crop-height); }
+  .hero-scene-copy { max-width: 34rem; }
+  /* Подпись темы: «—— HALLOWEEN EDITION  31. října · Kvitko Sweet». */
+  .hero-scene-caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+    font-size: 0.8125rem;
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--theme-accent) 70%, hsl(var(--foreground)));
+  }
+  .hero-scene-caption::before {
+    content: "";
+    width: 2.5rem;
+    height: 1px;
+    background: currentColor;
+  }
+  .hero-scene-kicker {
+    font-size: 0.6875rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--theme-clay);
+  }
+  .hero-scene-veil { display: none; }
+  @media (min-width: 1024px) {
+    .hero-scene-layout {
+      --scene-h: min(82vh, 800px, 56.25vw);
+      min-height: max(560px, var(--scene-h));
+    }
+    .hero-scene-frame {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: auto;
+      height: var(--scene-h);
+      aspect-ratio: 16 / 9;
+      overflow: visible;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .hero-scene-frame .hero-scene { left: 0; top: 0; width: 100%; height: 100%; }
+    .hero-scene-copy { max-width: clamp(22rem, 36vw, 32rem); }
+    .hero-scene-veil {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      background: radial-gradient(ellipse 27% 48% at 21% 52%,
+        color-mix(in srgb, var(--theme-bg) 62%, transparent) 40%, transparent 100%);
+    }
+  }
+
   .dark .mesh-gradient {
     background-color: #1a1518;
     background-image:
